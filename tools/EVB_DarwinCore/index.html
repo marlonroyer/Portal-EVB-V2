@@ -1,0 +1,1933 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Ferramenta para padronizar planilhas botanicas em Darwin Core com preservacao de campos verbatim e relatorio de validacao.">
+    <title>EVB DarwinCore</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="../shared/tool-standard.css?v=20260616a">
+    <style>
+        :root {
+            --panel-bg: rgba(255, 255, 255, 0.94);
+            --panel-alt: rgba(11, 63, 57, 0.05);
+            --ok-bg: #e8f5ef;
+            --ok-text: #155f40;
+            --warn-bg: #fff4d9;
+            --warn-text: #8a5d00;
+            --bad-bg: #fde8e2;
+            --bad-text: #98311b;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+        }
+
+        .page-shell {
+            display: grid;
+            gap: 1rem;
+            margin: 1.25rem auto 2rem;
+        }
+
+        .hero-note {
+            background: linear-gradient(135deg, rgba(11, 63, 57, 0.96), rgba(15, 81, 72, 0.96));
+            border: 1px solid rgba(243, 178, 51, 0.28);
+            border-radius: 12px;
+            box-shadow: 0 10px 26px rgba(7, 51, 47, 0.14);
+            color: var(--evb-cream-100);
+            display: grid;
+            gap: 0.55rem;
+            padding: 1.1rem 1.2rem;
+        }
+
+        .hero-note strong {
+            color: var(--evb-gold-500);
+        }
+
+        .workspace-grid {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: minmax(300px, 420px) minmax(0, 1fr);
+        }
+
+        .dashboard-grid {
+            display: grid;
+            align-content: start;
+            gap: 0.85rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .stack {
+            display: grid;
+            gap: 1rem;
+        }
+
+        .panel {
+            background: var(--panel-bg);
+            border: 1px solid var(--evb-border);
+            border-radius: 12px;
+            box-shadow: 0 8px 22px rgba(7, 51, 47, 0.08);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            align-items: center;
+            background: linear-gradient(135deg, var(--evb-green-900), var(--evb-green-700));
+            border-bottom: 2px solid var(--evb-gold-500);
+            color: var(--evb-cream-100);
+            display: flex;
+            gap: 0.75rem;
+            justify-content: space-between;
+            padding: 0.95rem 1.1rem;
+        }
+
+        .panel-header h2,
+        .panel-header h3 {
+            font-size: 1rem;
+            margin: 0;
+        }
+
+        .panel-header-actions {
+            display: inline-flex;
+            gap: 0.6rem;
+        }
+
+        .panel-header-actions .btn {
+            min-height: 34px;
+            padding: 0.45rem 0.8rem;
+        }
+
+        .panel-body {
+            display: grid;
+            gap: 1rem;
+            padding: 1rem 1.1rem 1.15rem;
+        }
+
+        .field-grid {
+            display: grid;
+            gap: 0.85rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .field {
+            display: grid;
+            gap: 0.35rem;
+        }
+
+        .field.full {
+            grid-column: 1 / -1;
+        }
+
+        .field label {
+            align-items: center;
+            color: var(--evb-green-900);
+            display: inline-flex;
+            font-size: 0.85rem;
+            font-weight: 700;
+            gap: 0.4rem;
+        }
+
+        .label-help {
+            align-items: center;
+            background: rgba(11, 63, 57, 0.08);
+            border: 1px solid rgba(11, 63, 57, 0.14);
+            border-radius: 999px;
+            color: var(--evb-green-900);
+            cursor: help;
+            display: inline-flex;
+            font-size: 0.76rem;
+            height: 1.2rem;
+            justify-content: center;
+            line-height: 1;
+            width: 1.2rem;
+        }
+
+        .field input,
+        .field select,
+        .field textarea {
+            background: #fff;
+            border: 1px solid rgba(11, 63, 57, 0.18);
+            border-radius: 9px;
+            color: var(--evb-ink-900);
+            font: inherit;
+            min-height: 42px;
+            padding: 0.75rem 0.8rem;
+            width: 100%;
+        }
+
+        .field textarea {
+            min-height: 88px;
+            resize: vertical;
+        }
+
+        .helper {
+            color: var(--evb-stone-700);
+            font-size: 0.82rem;
+            line-height: 1.45;
+            margin: 0;
+        }
+
+        .meta-help-box {
+            background: rgba(243, 178, 51, 0.12);
+            border: 1px solid rgba(243, 178, 51, 0.3);
+            border-radius: 10px;
+            color: var(--evb-green-950);
+            display: grid;
+            gap: 0.4rem;
+            padding: 0.9rem 1rem;
+        }
+
+        .meta-help-box strong {
+            color: var(--evb-green-900);
+        }
+
+        .toolbar {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.65rem;
+        }
+
+        .btn {
+            align-items: center;
+            background: var(--evb-green-900);
+            border: none;
+            border-radius: 10px;
+            color: #fff;
+            cursor: pointer;
+            display: inline-flex;
+            font: inherit;
+            font-weight: 700;
+            gap: 0.55rem;
+            min-height: 42px;
+            padding: 0.75rem 1rem;
+        }
+
+        .btn.secondary {
+            background: #efe5d8;
+            color: var(--evb-green-950);
+        }
+
+        .btn.accent {
+            background: var(--evb-gold-500);
+            color: var(--evb-green-950);
+        }
+
+        .btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.55;
+        }
+
+        .status-grid {
+            display: grid;
+            gap: 0.8rem;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+        }
+
+        .summary-panel .status-grid {
+            gap: 0.55rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .summary-panel .panel-body {
+            gap: 0.65rem;
+            min-height: 0;
+        }
+
+        .compact-panel .panel-body {
+            gap: 0.65rem;
+            padding: 0.85rem 0.95rem 0.95rem;
+        }
+
+        .compact-panel .panel-body p:last-child {
+            margin-bottom: 0;
+        }
+
+        .compact-panel .panel-header {
+            padding: 0.75rem 0.95rem;
+        }
+
+        .compact-panel .toolbar {
+            gap: 0.5rem;
+        }
+
+        .compact-panel .btn {
+            border-radius: 9px;
+            min-height: 36px;
+            padding: 0.55rem 0.72rem;
+        }
+
+        .panel-toggle {
+            align-items: center;
+            background: rgba(247, 239, 229, 0.12);
+            border: 1px solid rgba(247, 239, 229, 0.28);
+            border-radius: 8px;
+            color: var(--evb-cream-100);
+            display: inline-flex;
+            font-size: 0.86rem;
+            font-weight: 800;
+            gap: 0.4rem;
+            min-height: 30px;
+            padding: 0.35rem 0.6rem;
+        }
+
+        .panel-toggle:hover,
+        .panel-toggle:focus-visible {
+            background: var(--evb-gold-500);
+            color: var(--evb-green-950);
+        }
+
+        .alert-panel .panel-body {
+            max-height: 260px;
+            overflow: auto;
+            overscroll-behavior: contain;
+        }
+
+        .alert-panel.is-collapsed .panel-body {
+            display: none;
+        }
+
+        .alert-panel.is-collapsed .panel-toggle i {
+            transform: rotate(-90deg);
+        }
+
+        .status-card {
+            background: #fff;
+            border: 1px solid rgba(11, 63, 57, 0.1);
+            border-radius: 10px;
+            display: grid;
+            gap: 0.25rem;
+            padding: 0.85rem 0.9rem;
+        }
+
+        .summary-panel .status-card {
+            min-height: 74px;
+            padding: 0.7rem 0.75rem;
+        }
+
+        .status-value {
+            color: var(--evb-green-900);
+            font-size: 1.45rem;
+            font-weight: 900;
+        }
+
+        .summary-panel .status-value {
+            font-size: 1.2rem;
+        }
+
+        .status-label {
+            color: var(--evb-stone-700);
+            font-size: 0.84rem;
+            font-weight: 700;
+        }
+
+        .summary-panel .status-label,
+        .summary-panel .empty-state,
+        .compact-panel .helper,
+        .compact-panel .empty-state,
+        .compact-panel .alert-box p {
+            font-size: 0.78rem;
+        }
+
+        .tag-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.45rem;
+        }
+
+        .tag {
+            background: rgba(11, 63, 57, 0.08);
+            border: 1px solid rgba(11, 63, 57, 0.12);
+            border-radius: 999px;
+            color: var(--evb-green-900);
+            font-size: 0.78rem;
+            font-weight: 700;
+            padding: 0.35rem 0.6rem;
+        }
+
+        .match-status {
+            color: var(--evb-stone-700);
+            font-size: 0.78rem;
+            font-weight: 700;
+            line-height: 1.35;
+            margin: 0;
+        }
+
+        .match-list {
+            display: grid;
+            gap: 0.55rem;
+            max-height: 180px;
+            overflow: auto;
+        }
+
+        .match-item {
+            background: var(--panel-alt);
+            border: 1px solid rgba(11, 63, 57, 0.08);
+            border-radius: 10px;
+            display: grid;
+            gap: 0.18rem;
+            padding: 0.55rem 0.65rem;
+        }
+
+        .match-item strong {
+            color: var(--evb-green-950);
+            font-size: 0.82rem;
+        }
+
+        .match-item span {
+            color: var(--evb-stone-700);
+            font-size: 0.75rem;
+            font-weight: 650;
+            line-height: 1.3;
+        }
+
+        tr.taxon-corrected-row td {
+            background: #e8f5ec;
+        }
+
+        .alert-box {
+            border-radius: 10px;
+            display: grid;
+            gap: 0.5rem;
+            padding: 0.9rem 1rem;
+        }
+
+        .compact-panel .alert-box {
+            gap: 0.35rem;
+            padding: 0.7rem 0.75rem;
+        }
+
+        .alert-box.ok {
+            background: var(--ok-bg);
+            color: var(--ok-text);
+        }
+
+        .alert-box.warn {
+            background: var(--warn-bg);
+            color: var(--warn-text);
+        }
+
+        .alert-box.bad {
+            background: var(--bad-bg);
+            color: var(--bad-text);
+        }
+
+        .alert-box h4,
+        .alert-box p {
+            margin: 0;
+        }
+
+        .two-col {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        }
+
+        .result-table-wrap {
+            border: 1px solid rgba(11, 63, 57, 0.12);
+            border-radius: 10px;
+            max-height: 520px;
+            overflow: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            min-width: 100%;
+            width: max-content;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid rgba(11, 63, 57, 0.1);
+            font-size: 0.84rem;
+            padding: 0.55rem 0.65rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f8f4ee;
+            color: var(--evb-green-900);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        .mapping-list,
+        .warning-list {
+            display: grid;
+            gap: 0.65rem;
+        }
+
+        .mapping-item,
+        .warning-item {
+            background: var(--panel-alt);
+            border: 1px solid rgba(11, 63, 57, 0.08);
+            border-radius: 10px;
+            padding: 0.75rem 0.8rem;
+        }
+
+        .mapping-item strong,
+        .warning-item strong {
+            color: var(--evb-green-900);
+            display: block;
+            margin-bottom: 0.2rem;
+        }
+
+        .empty-state {
+            color: var(--evb-stone-700);
+            font-size: 0.92rem;
+            padding: 0.35rem 0;
+        }
+
+        .small {
+            font-size: 0.8rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 980px) {
+            .workspace-grid,
+            .two-col,
+            .dashboard-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .status-grid {
+                grid-template-columns: repeat(2, minmax(0, 1fr));
+            }
+        }
+
+        @media (max-width: 640px) {
+            .field-grid,
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .page-shell {
+                margin-top: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-table-columns" aria-hidden="true"></i>
+                <h1>EVB <span>DarwinCore</span></h1>
+            </div>
+            <p class="subtitle">Padronizacao de planilhas botanicas para Darwin Core com verbatim, preview e exportacao.</p>
+        </div>
+    </header>
+
+    <main class="main-container page-shell">
+        <section class="hero-note">
+            <strong>Primeira etapa pronta para uso.</strong>
+            <span>Esta versao foca em flora e resolve o nucleo do problema: converter planilhas autorais ou no padrao JABOT para uma estrutura Darwin Core consistente, preservando os valores originais nos campos verbatim sempre que fizer sentido.</span>
+        </section>
+
+        <div class="workspace-grid">
+            <aside class="stack">
+                <section class="panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-upload" aria-hidden="true"></i> Entrada e metadados</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="field-grid">
+                            <div class="field full">
+                                <label for="fileInput">Planilha de entrada</label>
+                                <input id="fileInput" type="file" accept=".xlsx,.xls,.csv">
+                                <p class="helper">Aceita planilhas autorais, exportacoes do JABOT e arquivos ja proximos do modelo Darwin Core.</p>
+                            </div>
+                            <div class="field">
+                                <label for="profileSelect">Perfil de leitura</label>
+                                <select id="profileSelect">
+                                    <option value="auto">Auto detectar</option>
+                                    <option value="jabot">JABOT</option>
+                                    <option value="authoral">Autoral</option>
+                                    <option value="dwc-like">Darwin Core parcial</option>
+                                    <option value="peld-rapeld">PELD/RAPELD Vegetação</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="datasetNameInput">datasetName <span class="label-help" title="Nome do conjunto de dados. Exemplo: Herb&aacute;rio Evaldo Buttura.">?</span></label>
+                                <input id="datasetNameInput" type="text" value="Herbario Evaldo Buttura">
+                            </div>
+                            <div class="field">
+                                <label for="institutionCodeInput">institutionCode <span class="label-help" title="Sigla curta da instituicao responsavel pelo conjunto. Exemplo: EVB.">?</span></label>
+                                <input id="institutionCodeInput" type="text" value="EVB">
+                            </div>
+                            <div class="field">
+                                <label for="collectionCodeInput">collectionCode <span class="label-help" title="Nome curto ou codigo da colecao dentro da instituicao. Exemplo: Herbario.">?</span></label>
+                                <input id="collectionCodeInput" type="text" value="Herbario">
+                            </div>
+                            <div class="field">
+                                <label for="basisOfRecordInput">basisOfRecord <span class="label-help" title="Tipo geral do registro no Darwin Core. Para exsicatas de herb&aacute;rio, o mais comum e PreservedSpecimen.">?</span></label>
+                                <select id="basisOfRecordInput">
+                                    <option value="PreservedSpecimen">PreservedSpecimen</option>
+                                    <option value="MaterialSample">MaterialSample</option>
+                                    <option value="HumanObservation">HumanObservation</option>
+                                    <option value="MachineObservation">MachineObservation</option>
+                                    <option value="Occurrence">Occurrence</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="languageInput">language <span class="label-help" title="Idioma predominante do conjunto de dados ou das anotacoes textuais. Exemplo: pt.">?</span></label>
+                                <select id="languageInput">
+                                    <option value="pt">pt</option>
+                                    <option value="en">en</option>
+                                    <option value="es">es</option>
+                                </select>
+                            </div>
+                            <div class="field">
+                                <label for="licenseInput">license <span class="label-help" title="Licenca de uso dos dados. CC0 libera sem restricao; CC BY exige citacao; CC BY-NC restringe uso comercial.">?</span></label>
+                                <select id="licenseInput">
+                                    <option value="CC0">CC0</option>
+                                    <option value="CC BY">CC BY</option>
+                                    <option value="CC BY-NC">CC BY-NC</option>
+                                </select>
+                            </div>
+                            <div class="field full">
+                                <label for="rightsHolderInput">rightsHolder <span class="label-help" title="Pessoa ou instituicao que detem os direitos sobre os dados. Em geral, o proprio herb&aacute;rio ou a instituicao mantenedora.">?</span></label>
+                                <input id="rightsHolderInput" type="text" value="Herbario Evaldo Buttura - UNILA">
+                            </div>
+                            <div class="field full">
+                                <label for="remarksInput">observacao do lote</label>
+                                <textarea id="remarksInput" placeholder="Opcional. Esta observacao pode ser registrada em informationWithheld, dataGeneralizations ou nas notas auxiliares do lote."></textarea>
+                            </div>
+                        </div>
+                        <div class="meta-help-box">
+                            <strong>Guia rapido dos metadados</strong>
+                            <span><strong>license</strong>: define como terceiros podem reutilizar os dados. Se houver duvida e o objetivo for compartilhamento amplo de metadados, <strong>CC BY</strong> costuma ser uma escolha equilibrada. <strong>CC0</strong> e mais aberta. <strong>CC BY-NC</strong> restringe uso comercial.</span>
+                            <span><strong>rightsHolder</strong>: e o titular dos direitos sobre o conjunto. Normalmente e a instituicao responsavel, como o herb&aacute;rio ou a universidade.</span>
+                            <span><strong>basisOfRecord</strong>: para exsicatas e registros fisicos de herb&aacute;rio, o padrao mais comum e <strong>PreservedSpecimen</strong>.</span>
+                        </div>
+                        <div class="toolbar">
+                            <button class="btn accent" id="processBtn" type="button"><i class="fas fa-gears"></i> Converter para Darwin Core</button>
+                            <button class="btn secondary" id="resetBtn" type="button"><i class="fas fa-eraser"></i> Limpar</button>
+                        </div>
+                    </div>
+                </section>
+
+            </aside>
+
+            <section class="dashboard-grid">
+                <section class="panel summary-panel compact-panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-chart-column" aria-hidden="true"></i> Resumo da conversao</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="status-grid" id="summaryCards">
+                            <div class="status-card"><div class="status-value">0</div><div class="status-label">Linhas</div></div>
+                            <div class="status-card"><div class="status-value">0</div><div class="status-label">Campos Darwin Core</div></div>
+                            <div class="status-card"><div class="status-value">0</div><div class="status-label">Alertas</div></div>
+                            <div class="status-card"><div class="status-value">-</div><div class="status-label">Perfil detectado</div></div>
+                        </div>
+                        <div id="summaryMessage" class="empty-state">Carregue uma planilha e execute a conversao para gerar o resumo.</div>
+                    </div>
+                </section>
+
+                <section class="panel compact-panel">
+                    <div class="panel-header">
+                        <h2><i class="fas fa-file-export" aria-hidden="true"></i> Exportacao</h2>
+                    </div>
+                    <div class="panel-body">
+                        <div class="toolbar">
+                            <button class="btn" id="downloadXlsxBtn" type="button" disabled><i class="fas fa-file-excel"></i> Baixar .xlsx</button>
+                            <button class="btn secondary" id="downloadCsvBtn" type="button" disabled><i class="fas fa-file-csv"></i> Baixar .csv</button>
+                            <button class="btn secondary" id="copyPreviewBtn" type="button" disabled><i class="fas fa-copy"></i> Copiar planilha</button>
+                        </div>
+                        <p class="helper">Exporta `.xlsx`, `.csv` ou copia todas as linhas convertidas em formato tabulado.</p>
+                    </div>
+                </section>
+
+                <section class="panel compact-panel">
+                    <div class="panel-header">
+                        <h3><i class="fas fa-seedling" aria-hidden="true"></i> Matching taxonomico</h3>
+                    </div>
+                    <div class="panel-body">
+                        <div class="toolbar">
+                            <button class="btn secondary" id="matchGbifBtn" type="button" disabled><i class="fas fa-cloud-arrow-down"></i> Consultar GBIF</button>
+                        </div>
+                        <p class="match-status" id="matchStatus">Converta uma planilha para consultar nomes cientificos no GBIF Species API. A consulta e opcional e depende da internet.</p>
+                        <div class="match-list" id="matchList">
+                            <div class="empty-state">Resultados de matching aparecerao aqui.</div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="panel compact-panel alert-panel" id="alertPanel">
+                    <div class="panel-header">
+                        <h3><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Validacao e alertas</h3>
+                        <button class="panel-toggle" id="toggleAlertPanel" type="button" aria-expanded="true" aria-controls="alertPanelBody">
+                            <i class="fas fa-chevron-down" aria-hidden="true"></i>
+                            <span>Recolher</span>
+                        </button>
+                    </div>
+                    <div class="panel-body" id="alertPanelBody">
+                        <div id="validationSummary" class="alert-box ok">
+                            <h4>Sem processamento ainda</h4>
+                            <p>Os alertas locais vao aparecer aqui depois da conversao.</p>
+                        </div>
+                        <div id="warningList" class="warning-list">
+                            <div class="empty-state">Nenhum alerta para mostrar.</div>
+                        </div>
+                    </div>
+                </section>
+            </section>
+        </div>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-table" aria-hidden="true"></i> Preview da planilha Darwin Core</h2>
+                <div class="panel-header-actions">
+                    <button class="btn secondary" id="copyPreviewInlineBtn" type="button" disabled><i class="fas fa-copy"></i> Copiar planilha</button>
+                </div>
+            </div>
+            <div class="panel-body">
+                <div class="result-table-wrap" id="previewWrap">
+                    <div class="empty-state" style="padding:0.8rem;">O preview da planilha convertida aparecera aqui.</div>
+                </div>
+            </div>
+        </section>
+
+        <section class="panel">
+            <div class="panel-header">
+                <h2><i class="fas fa-arrows-left-right-to-line" aria-hidden="true"></i> Mapeamento usado</h2>
+            </div>
+            <div class="panel-body">
+                <div id="mappingList" class="mapping-list">
+                    <div class="empty-state">O mapeamento efetivo sera listado aqui apos a conversao, mostrando de quais colunas cada termo Darwin Core foi construido.</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <div class="footer-content">
+            <section class="footer-section">
+                <h3>Herbario Evaldo Buttura</h3>
+                <p>Padronizacao e interoperabilidade de dados botanicos.</p>
+                <p>Uso interno - EVB / UNILA.</p>
+            </section>
+            <section class="footer-section">
+                <h3>EVB DarwinCore</h3>
+                <p>Conversao de planilhas autorais e JABOT para Darwin Core.</p>
+                <p>Versao 1.0 - Junho de 2026.</p>
+            </section>
+            <section class="footer-section">
+                <h3>Desenvolvimento</h3>
+                <p>Marlon Royer de Morais</p>
+                <p>Portal EVB - Ferramentas Digitais.</p>
+            </section>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Herbario Evaldo Buttura. Sistema desenvolvido para organizacao, processamento e compartilhamento de dados botanicos.</p>
+        </div>
+    </footer>
+
+    <script>
+        const DARWIN_COLUMNS = [
+            "occurrenceID", "catalogNumber", "institutionCode", "collectionCode", "datasetName", "basisOfRecord",
+            "type", "language", "license", "rightsHolder", "occurrenceStatus", "recordedBy", "recordNumber",
+            "fieldNumber", "organismID", "individualCount", "eventID", "parentEventID", "samplingProtocol",
+            "eventDate", "verbatimEventDate", "year", "month", "day", "country", "countryCode", "stateProvince",
+            "county", "locality", "verbatimLocality", "decimalLatitude", "decimalLongitude", "geodeticDatum",
+            "verbatimLatitude", "verbatimLongitude", "verbatimCoordinates", "scientificName", "verbatimScientificName",
+            "kingdom", "family", "genus", "specificEpithet", "scientificNameAuthorship", "taxonRank", "identifiedBy",
+            "dateIdentified", "occurrenceRemarks", "identificationRemarks", "habitat", "lifeForm", "dynamicProperties",
+            "evbSourceProfile", "evbValidationStatus", "evbValidationNotes"
+        ];
+
+        const MEASUREMENT_COLUMNS = [
+            "measurementID", "occurrenceID", "organismID", "eventID", "measurementType", "verbatimMeasurementType",
+            "measurementValue", "measurementUnit", "measurementMethod", "measurementRemarks"
+        ];
+
+        const state = {
+            rows: [],
+            headers: [],
+            convertedRows: [],
+            measurementRows: [],
+            warnings: [],
+            mappingUsage: {},
+            taxonMatches: {},
+            detectedProfile: "",
+            workbookName: "evb-darwincore.xlsx"
+        };
+
+        const els = {
+            fileInput: document.getElementById("fileInput"),
+            profileSelect: document.getElementById("profileSelect"),
+            datasetNameInput: document.getElementById("datasetNameInput"),
+            institutionCodeInput: document.getElementById("institutionCodeInput"),
+            collectionCodeInput: document.getElementById("collectionCodeInput"),
+            basisOfRecordInput: document.getElementById("basisOfRecordInput"),
+            languageInput: document.getElementById("languageInput"),
+            licenseInput: document.getElementById("licenseInput"),
+            rightsHolderInput: document.getElementById("rightsHolderInput"),
+            remarksInput: document.getElementById("remarksInput"),
+            processBtn: document.getElementById("processBtn"),
+            resetBtn: document.getElementById("resetBtn"),
+            downloadXlsxBtn: document.getElementById("downloadXlsxBtn"),
+            downloadCsvBtn: document.getElementById("downloadCsvBtn"),
+            copyPreviewBtn: document.getElementById("copyPreviewBtn"),
+            copyPreviewInlineBtn: document.getElementById("copyPreviewInlineBtn"),
+            matchGbifBtn: document.getElementById("matchGbifBtn"),
+            matchStatus: document.getElementById("matchStatus"),
+            matchList: document.getElementById("matchList"),
+            summaryCards: document.getElementById("summaryCards"),
+            summaryMessage: document.getElementById("summaryMessage"),
+            validationSummary: document.getElementById("validationSummary"),
+            warningList: document.getElementById("warningList"),
+            alertPanel: document.getElementById("alertPanel"),
+            toggleAlertPanel: document.getElementById("toggleAlertPanel"),
+            mappingList: document.getElementById("mappingList"),
+            previewWrap: document.getElementById("previewWrap")
+        };
+
+        const FIELD_HINTS = {
+            catalogNumber: ["numtombo", "catalognumber", "catalognumber", "tombo", "accessionnumber"],
+            institutionCode: ["institutioncode", "sigla", "siglacolecao", "sigla_colbot_origem"],
+            collectionCode: ["collectioncode", "collection", "colecao"],
+            recordedBy: ["collector", "recordedby", "coletor", "collectedby"],
+            additionalCollectors: ["addcoll", "additionalcollectors", "recordedby2", "coletoresadicionais", "additionalcollector", "othercollectors"],
+            recordNumber: ["number", "collectornumber", "recordnumber", "numerocoleta"],
+            scientificName: ["scientificname", "nomecientifico", "taxon", "speciesname"],
+            family: ["family", "familia"],
+            genus: ["genus", "genero"],
+            specificEpithet: ["sp1", "species", "specificepithet", "epiteto", "speciesepithet"],
+            scientificNameAuthorship: ["author1", "scientificnameauthorship", "scientificnameauthor", "author"],
+            country: ["country", "pais"],
+            stateProvince: ["majorarea", "stateprovince", "estado", "state"],
+            county: ["minorarea", "county", "municipio", "municipality", "city"],
+            locality: ["gazetteer", "locality", "localidade"],
+            decimalLatitude: ["latitude", "decimallatitude", "lat"],
+            decimalLongitude: ["longitude", "decimallongitude", "lon", "long"],
+            verbatimLatitude: ["verbatimlatitude"],
+            verbatimLongitude: ["verbatimlongitude"],
+            identifiedBy: ["identifiedby", "detby", "determinador"],
+            additionalIdentifiers: ["adddet", "additionalidentifiedby", "additionalidentifier", "detby2"],
+            habitat: ["habitat"],
+            lifeForm: ["habito", "lifeform", "habit"],
+            occurrenceRemarks: ["notes", "remarks", "occurrenceremarks", "observacoes", "observation"],
+            geodeticDatum: ["geodeticdatum", "datum"],
+            kingdom: ["kingdom"],
+            eventDate: ["eventdate"],
+            verbatimEventDate: ["verbatimeventdate"],
+            year: ["collyy", "year", "yearcollected"],
+            month: ["collmm", "month", "monthcollected"],
+            day: ["colldd", "day", "daycollected"],
+            dateIdentified: ["dateidentified", "identifieddate", "identificationdate"],
+            identifiedYear: ["detyy", "yearidentified"],
+            identifiedMonth: ["detmm", "monthidentified"],
+            identifiedDay: ["detdd", "dayidentified"]
+        };
+
+        document.addEventListener("DOMContentLoaded", () => {
+            els.processBtn.addEventListener("click", processWorkbook);
+            els.resetBtn.addEventListener("click", resetTool);
+            els.downloadXlsxBtn.addEventListener("click", downloadXlsx);
+            els.downloadCsvBtn.addEventListener("click", downloadCsv);
+            els.copyPreviewBtn.addEventListener("click", copyPreview);
+            els.copyPreviewInlineBtn.addEventListener("click", copyPreview);
+            els.matchGbifBtn.addEventListener("click", matchScientificNamesWithGbif);
+            els.toggleAlertPanel.addEventListener("click", toggleAlertPanel);
+        });
+
+        function toggleAlertPanel() {
+            const collapsed = els.alertPanel.classList.toggle("is-collapsed");
+            els.toggleAlertPanel.setAttribute("aria-expanded", String(!collapsed));
+            els.toggleAlertPanel.querySelector("span").textContent = collapsed ? "Expandir" : "Recolher";
+        }
+
+        async function processWorkbook() {
+            const file = els.fileInput.files?.[0];
+            if (!file) {
+                renderValidationBox("bad", "Arquivo ausente", "Selecione uma planilha antes de iniciar a conversao.");
+                return;
+            }
+
+            setProcessing(true);
+            try {
+                const rows = await readRows(file);
+                state.rows = rows;
+                state.headers = collectHeaders(rows);
+                state.warnings = [];
+                state.mappingUsage = {};
+                state.taxonMatches = {};
+                state.detectedProfile = resolveProfile(state.headers);
+                state.workbookName = buildOutputName(file.name);
+                state.measurementRows = [];
+                state.convertedRows = state.detectedProfile === "peld-rapeld"
+                    ? rows.map((row, index) => convertPeldRapeldRow(row, index + 2))
+                    : rows.map((row, index) => convertRow(row, index + 2));
+
+                renderSummary();
+                renderValidation();
+                renderMapping();
+                renderPreview();
+                toggleExports(true);
+                resetTaxonMatchPanel();
+                els.matchGbifBtn.disabled = !state.convertedRows.length;
+            } catch (error) {
+                console.error(error);
+                renderValidationBox("bad", "Falha na conversao", `Nao foi possivel converter o arquivo. Detalhe: ${error.message}`);
+                toggleExports(false);
+            } finally {
+                setProcessing(false);
+            }
+        }
+
+        function setProcessing(active) {
+            els.processBtn.disabled = active;
+            els.processBtn.innerHTML = active
+                ? '<i class="fas fa-spinner fa-spin"></i> Processando'
+                : '<i class="fas fa-gears"></i> Converter para Darwin Core';
+        }
+
+        function toggleExports(active) {
+            els.downloadXlsxBtn.disabled = !active;
+            els.downloadCsvBtn.disabled = !active;
+            els.copyPreviewBtn.disabled = !active;
+            els.copyPreviewInlineBtn.disabled = !active;
+            els.matchGbifBtn.disabled = !active || !state.convertedRows.length;
+        }
+
+        async function readRows(file) {
+            const lower = file.name.toLowerCase();
+            if (lower.endsWith(".csv")) {
+                const text = await readTextFile(file);
+                const workbook = XLSX.read(text, { type: "string", raw: true, codepage: 65001 });
+                return sheetToRows(workbook.Sheets[workbook.SheetNames[0]]);
+            }
+            const buffer = await file.arrayBuffer();
+            const workbook = XLSX.read(new Uint8Array(buffer), { type: "array", raw: true, codepage: 1252 });
+            return sheetToRows(workbook.Sheets[workbook.SheetNames[0]]);
+        }
+
+        async function readTextFile(file) {
+            const buffer = await file.arrayBuffer();
+            try {
+                return new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+            } catch (error) {
+                return new TextDecoder("windows-1252").decode(buffer);
+            }
+        }
+
+        function sheetToRows(sheet) {
+            return XLSX.utils.sheet_to_json(sheet, { defval: "", raw: true }).map(row => preserveOriginalRow(row));
+        }
+
+        function preserveOriginalRow(row) {
+            const normalized = {};
+            Object.entries(row).forEach(([key, value]) => {
+                normalized[normalizeHeader(key)] = value;
+            });
+            Object.defineProperty(normalized, "__original", { value: { ...row }, enumerable: false });
+            Object.defineProperty(normalized, "__headers", { value: Object.keys(row), enumerable: false });
+            return normalized;
+        }
+
+        function collectHeaders(rows) {
+            return Array.from(new Set(rows.flatMap(row => Object.keys(row).filter(key => !key.startsWith("__")))));
+        }
+
+        function resolveProfile(headers) {
+            const selected = els.profileSelect.value;
+            if (selected !== "auto") return selected;
+            const set = new Set(headers);
+            if (["modulo", "parcela", "subparcela", "dbh1cm", "heightm"].every(key => set.has(key))) return "peld-rapeld";
+            if (set.has("numtombo") || set.has("majorarea") || set.has("collyy")) return "jabot";
+            if (set.has("scientificname") && (set.has("verbatimlatitude") || set.has("stateprovince"))) return "dwc-like";
+            return "authoral";
+        }
+
+        function convertRow(row, lineNumber) {
+            const notes = [];
+            const metadata = collectMetadata();
+            const catalog = getField(row, FIELD_HINTS.catalogNumber);
+            const family = getField(row, FIELD_HINTS.family);
+            const genus = getField(row, FIELD_HINTS.genus);
+            const epithet = getField(row, FIELD_HINTS.specificEpithet);
+            const authorship = getField(row, FIELD_HINTS.scientificNameAuthorship);
+            const suppliedScientificName = getField(row, FIELD_HINTS.scientificName);
+            const scientificName = clean(suppliedScientificName.value) || buildScientificName(genus.value, epithet.value, authorship.value);
+
+            const dateParts = deriveDateParts(row);
+            const coord = deriveCoordinates(row);
+            const occurrenceID = buildOccurrenceID(row, catalog.value, lineNumber, notes, metadata);
+            const locality = getField(row, FIELD_HINTS.locality);
+            const recordedBy = getField(row, FIELD_HINTS.recordedBy);
+            const additionalCollectors = getField(row, FIELD_HINTS.additionalCollectors);
+            const recordNumber = getField(row, FIELD_HINTS.recordNumber);
+            const identifiedBy = getField(row, FIELD_HINTS.identifiedBy);
+            const additionalIdentifiers = getField(row, FIELD_HINTS.additionalIdentifiers);
+            const remarks = getField(row, FIELD_HINTS.occurrenceRemarks);
+            const lifeForm = getField(row, FIELD_HINTS.lifeForm);
+            const habitat = getField(row, FIELD_HINTS.habitat);
+            const country = getField(row, FIELD_HINTS.country);
+            const stateProvince = getField(row, FIELD_HINTS.stateProvince);
+            const county = getField(row, FIELD_HINTS.county);
+            const kingdom = getField(row, FIELD_HINTS.kingdom);
+            const datum = getField(row, FIELD_HINTS.geodeticDatum);
+            const dateIdentified = deriveIdentifiedDate(row);
+
+            if (!scientificName) notes.push("scientificName ausente");
+            if (!family.value) notes.push("family ausente");
+            if (!recordedBy.value) notes.push("recordedBy ausente");
+            if (!coord.decimalLatitude || !coord.decimalLongitude) notes.push("coordenadas ausentes ou invalidas");
+            if (!locality.value && !county.value && !stateProvince.value) notes.push("bloco geografico muito incompleto");
+            if (!dateParts.eventDate) notes.push("eventDate nao foi montado");
+            if (!coord.verbatimLatitude || !coord.verbatimLongitude) notes.push("campos verbatim de coordenada vazios");
+
+            const validationStatus = notes.length ? (notes.some(note => /ausente|invalidas|incompleto/.test(note)) ? "Revisar" : "OK") : "OK";
+
+            return {
+                occurrenceID,
+                catalogNumber: clean(catalog.value),
+                institutionCode: metadata.institutionCode,
+                collectionCode: metadata.collectionCode,
+                datasetName: metadata.datasetName,
+                basisOfRecord: metadata.basisOfRecord,
+                type: "PhysicalObject",
+                language: metadata.language,
+                license: metadata.license,
+                rightsHolder: metadata.rightsHolder,
+                occurrenceStatus: "present",
+                recordedBy: joinFormattedPeople(recordedBy.value, additionalCollectors.value),
+                recordNumber: clean(recordNumber.value),
+                eventDate: dateParts.eventDate,
+                verbatimEventDate: dateParts.verbatimEventDate,
+                year: dateParts.year,
+                month: dateParts.month,
+                day: dateParts.day,
+                country: titleCase(clean(country.value)),
+                countryCode: deriveCountryCode(country.value),
+                stateProvince: titleCase(clean(stateProvince.value)),
+                county: titleCase(clean(county.value)),
+                locality: clean(locality.value),
+                verbatimLocality: clean(locality.originalValue || locality.value),
+                decimalLatitude: coord.decimalLatitude,
+                decimalLongitude: coord.decimalLongitude,
+                geodeticDatum: clean(datum.value) || "WGS84",
+                verbatimLatitude: coord.verbatimLatitude,
+                verbatimLongitude: coord.verbatimLongitude,
+                verbatimCoordinates: coord.verbatimCoordinates,
+                scientificName: scientificName,
+                verbatimScientificName: clean(suppliedScientificName.originalValue || suppliedScientificName.value || buildVerbatimScientificName(row)),
+                kingdom: clean(kingdom.value) || "Plantae",
+                family: titleCase(clean(family.value)),
+                genus: clean(genus.value),
+                specificEpithet: clean(epithet.value),
+                scientificNameAuthorship: clean(authorship.value),
+                taxonRank: deriveTaxonRank(genus.value, epithet.value, family.value),
+                identifiedBy: joinFormattedPeople(identifiedBy.value, additionalIdentifiers.value),
+                dateIdentified: dateIdentified,
+                occurrenceRemarks: clean(remarks.value),
+                identificationRemarks: clean(metadata.remarksInput),
+                habitat: clean(habitat.value),
+                lifeForm: clean(lifeForm.value),
+                evbSourceProfile: state.detectedProfile,
+                evbValidationStatus: validationStatus,
+                evbValidationNotes: notes.join(" | ")
+            };
+        }
+
+        function convertPeldRapeldRow(row, lineNumber) {
+            const metadata = collectMetadata();
+            const notes = [];
+            const moduleRaw = clean(row.modulo);
+            const plot = clean(row.parcela);
+            const side = clean(row.lado).toUpperCase();
+            const strip = clean(row.faixa);
+            const subplot = clean(row.subparcela);
+            const treeID = clean(row.id);
+            const family = clean(row.familia);
+            const scientificName = clean(row.especie);
+            const speciesCode = clean(row.codigo);
+            const remarks = clean(row.observacoes);
+            const flag = clean(row.flag1);
+
+            const locality = "Parque Nacional do Iguaçu";
+            const county = "Foz do Iguaçu";
+            const stateProvince = "Paraná";
+            const country = "Brasil";
+            const locationID = "BR:PR:FozDoIguacu:PARNAIguacu";
+            const moduleLabel = moduleRaw || "Foz";
+            const parentEventID = compactID(["PELD", "PARNAIguacu", moduleLabel, `P${plot || "NA"}`]);
+            const eventID = compactID(["PELD", "PARNAIguacu", moduleLabel, `P${plot || "NA"}`, side && `L${side}`, strip && `F${strip}`, subplot && `S${subplot}`].filter(Boolean));
+            const organismID = compactID([eventID, treeID && `ID${treeID}`].filter(Boolean));
+            const occurrenceID = `${organismID || compactID(["PELD", "PARNAIguacu", lineNumber])}:occurrence`;
+            const taxonParts = splitScientificName(scientificName);
+
+            registerMapping("eventID", "Módulo | Parcela | Lado | Faixa | Subparcela");
+            registerMapping("organismID", "ID");
+            registerMapping("scientificName", "Espécie");
+            registerMapping("family", "Família");
+            registerMapping("dynamicProperties", "Módulo | Parcela | Lado | Faixa | Subparcela | Código | Flag_1 | X | Y");
+
+            if (!scientificName) notes.push("scientificName ausente");
+            if (!family) notes.push("family ausente");
+            if (!treeID) notes.push("organismID sem plaqueta/ID");
+            if (!plot) notes.push("parcela ausente");
+            if (!subplot) notes.push("subparcela ausente");
+            notes.push("coordenadas geograficas ausentes; posicoes X/Y foram preservadas como medidas locais");
+
+            const dynamicProperties = {
+                sourceProfile: "PELD/RAPELD Vegetação",
+                moduloOriginal: moduleRaw,
+                plot,
+                side,
+                strip,
+                subplot,
+                speciesCode,
+                flag,
+                localX_m: parseLocaleNumber(row.x),
+                localY_m: parseLocaleNumber(row.y)
+            };
+
+            addPeldMeasurementRows({ row, lineNumber, occurrenceID, organismID, eventID });
+
+            return {
+                occurrenceID,
+                catalogNumber: "",
+                institutionCode: metadata.institutionCode,
+                collectionCode: metadata.collectionCode,
+                datasetName: metadata.datasetName || "PELD Vegetacao - PARNA Iguacu",
+                basisOfRecord: "HumanObservation",
+                type: "Event",
+                language: metadata.language,
+                license: metadata.license,
+                rightsHolder: metadata.rightsHolder,
+                occurrenceStatus: "present",
+                recordedBy: "",
+                recordNumber: "",
+                fieldNumber: treeID,
+                organismID,
+                individualCount: 1,
+                eventID,
+                parentEventID,
+                samplingProtocol: "PPBio/RAPELD - protocolo de vegetação",
+                eventDate: "",
+                verbatimEventDate: "",
+                year: "",
+                month: "",
+                day: "",
+                country,
+                countryCode: "BR",
+                stateProvince,
+                county,
+                locality,
+                verbatimLocality: moduleRaw || locality,
+                decimalLatitude: "",
+                decimalLongitude: "",
+                geodeticDatum: "",
+                verbatimLatitude: "",
+                verbatimLongitude: "",
+                verbatimCoordinates: "",
+                scientificName,
+                verbatimScientificName: scientificName,
+                kingdom: "Plantae",
+                family: titleCase(family),
+                genus: taxonParts.genus,
+                specificEpithet: taxonParts.specificEpithet,
+                scientificNameAuthorship: "",
+                taxonRank: taxonParts.specificEpithet ? "species" : (taxonParts.genus ? "genus" : ""),
+                identifiedBy: "",
+                dateIdentified: "",
+                occurrenceRemarks: [remarks, flag ? `Flag_1: ${flag}` : ""].filter(Boolean).join(" | "),
+                identificationRemarks: clean(metadata.remarksInput),
+                habitat: "Floresta Estacional Semidecidual",
+                lifeForm: "árvore",
+                dynamicProperties: JSON.stringify(dynamicProperties),
+                evbSourceProfile: state.detectedProfile,
+                evbValidationStatus: notes.some(note => /ausente|sem/.test(note)) ? "Revisar" : "OK",
+                evbValidationNotes: notes.join(" | ")
+            };
+        }
+
+        function addPeldMeasurementRows({ row, lineNumber, occurrenceID, organismID, eventID }) {
+            const measurements = [
+                ["DBH1_cm", "diameter at breast height stem 1", "dbh1cm", "cm", "PPBio/RAPELD vegetation protocol"],
+                ["DBH2_cm", "diameter at breast height stem 2", "dbh2cm", "cm", "PPBio/RAPELD vegetation protocol"],
+                ["DBH3_cm", "diameter at breast height stem 3", "dbh3cm", "cm", "PPBio/RAPELD vegetation protocol"],
+                ["POM_m", "point of measurement height", "pomm", "m", "PPBio/RAPELD vegetation protocol"],
+                ["Height_m", "organism height", "heightm", "m", "visual estimate in field"],
+                ["X", "local X position", "x", "m", "position inside subplot"],
+                ["Y", "local Y position", "y", "m", "position inside subplot"],
+                ["Flag_1", "field condition flag", "flag1", "", "field flag vocabulary"]
+            ];
+
+            measurements.forEach(([verbatimType, measurementType, sourceKey, unit, method]) => {
+                const rawValue = clean(row[sourceKey]);
+                if (!rawValue || /^na$/i.test(rawValue)) return;
+                const numeric = parseLocaleNumber(rawValue);
+                state.measurementRows.push({
+                    measurementID: `${occurrenceID}:m${state.measurementRows.length + 1}`,
+                    occurrenceID,
+                    organismID,
+                    eventID,
+                    measurementType,
+                    verbatimMeasurementType: verbatimType,
+                    measurementValue: Number.isFinite(numeric) ? numeric : rawValue,
+                    measurementUnit: unit,
+                    measurementMethod: method,
+                    measurementRemarks: `Origem: linha ${lineNumber}, coluna ${verbatimType}`
+                });
+                registerMapping("MeasurementOrFact", verbatimType);
+            });
+        }
+
+        function collectMetadata() {
+            return {
+                datasetName: clean(els.datasetNameInput.value),
+                institutionCode: clean(els.institutionCodeInput.value),
+                collectionCode: clean(els.collectionCodeInput.value),
+                basisOfRecord: clean(els.basisOfRecordInput.value),
+                language: clean(els.languageInput.value),
+                license: clean(els.licenseInput.value),
+                rightsHolder: clean(els.rightsHolderInput.value),
+                remarksInput: clean(els.remarksInput.value)
+            };
+        }
+
+        function getField(row, candidates) {
+            for (const candidate of candidates) {
+                if (candidate in row && clean(row[candidate])) {
+                    registerMapping(candidates[0], candidate);
+                    return {
+                        value: row[candidate],
+                        originalValue: row[candidate],
+                        source: candidate
+                    };
+                }
+            }
+            return { value: "", originalValue: "", source: "" };
+        }
+
+        function registerMapping(targetField, sourceField) {
+            if (!sourceField) return;
+            if (!state.mappingUsage[targetField]) state.mappingUsage[targetField] = new Set();
+            state.mappingUsage[targetField].add(sourceField);
+        }
+
+        function deriveDateParts(row) {
+            const eventDateField = getField(row, FIELD_HINTS.eventDate);
+            const verbatimEventDateField = getField(row, FIELD_HINTS.verbatimEventDate);
+            const yearField = getField(row, FIELD_HINTS.year);
+            const monthField = getField(row, FIELD_HINTS.month);
+            const dayField = getField(row, FIELD_HINTS.day);
+
+            let eventDate = normalizeDateValue(eventDateField.value);
+            let year = clean(yearField.value);
+            let month = pad2(monthField.value);
+            let day = pad2(dayField.value);
+
+            if (!eventDate && year) {
+                eventDate = buildIsoDate(year, month, day);
+            }
+
+            if (!year && eventDate) {
+                const parts = eventDate.split("-");
+                year = parts[0] || "";
+                month = parts[1] || "";
+                day = parts[2] || "";
+            }
+
+            const verbatimEventDate = clean(verbatimEventDateField.value) || buildVerbatimDate(dayField.value, monthField.value, yearField.value) || eventDate;
+            return { eventDate, verbatimEventDate, year, month, day };
+        }
+
+        function deriveCoordinates(row) {
+            const decimalLat = getField(row, FIELD_HINTS.decimalLatitude);
+            const decimalLon = getField(row, FIELD_HINTS.decimalLongitude);
+            const verbatimLat = getField(row, FIELD_HINTS.verbatimLatitude);
+            const verbatimLon = getField(row, FIELD_HINTS.verbatimLongitude);
+
+            const parsedLat = parseCoordinateValue(decimalLat.value || verbatimLat.value, "lat", row);
+            const parsedLon = parseCoordinateValue(decimalLon.value || verbatimLon.value, "lon", row);
+
+            const originalLat = clean(verbatimLat.value || decimalLat.originalValue || buildJabotVerbatimCoordinate(row, "lat"));
+            const originalLon = clean(verbatimLon.value || decimalLon.originalValue || buildJabotVerbatimCoordinate(row, "lon"));
+
+            return {
+                decimalLatitude: parsedLat,
+                decimalLongitude: parsedLon,
+                verbatimLatitude: originalLat,
+                verbatimLongitude: originalLon,
+                verbatimCoordinates: originalLat && originalLon ? `${originalLat} | ${originalLon}` : originalLat || originalLon
+            };
+        }
+
+        function deriveIdentifiedDate(row) {
+            const direct = getField(row, FIELD_HINTS.dateIdentified);
+            const normalizedDirect = normalizeDateValue(direct.value);
+            if (normalizedDirect) return normalizedDirect;
+
+            const year = clean(getField(row, FIELD_HINTS.identifiedYear).value);
+            const month = pad2(getField(row, FIELD_HINTS.identifiedMonth).value);
+            const day = pad2(getField(row, FIELD_HINTS.identifiedDay).value);
+            return buildIsoDate(year, month, day);
+        }
+
+        function parseCoordinateValue(value, type, row) {
+            const direct = parseDecimal(value);
+            if (Number.isFinite(direct)) return direct.toFixed(6);
+
+            const dms = buildDecimalFromJabot(row, type);
+            if (Number.isFinite(dms)) return dms.toFixed(6);
+
+            const parsed = parseDms(value, type);
+            return Number.isFinite(parsed) ? parsed.toFixed(6) : "";
+        }
+
+        function buildOccurrenceID(row, catalogNumber, lineNumber, notes, metadata) {
+            const existing = clean(row.occurrenceid || row.occurrenceID);
+            if (existing) return existing;
+            if (catalogNumber) return [metadata.institutionCode || "EVB", metadata.collectionCode || "COL", catalogNumber].join(":");
+            notes.push("occurrenceID gerado sem catalogNumber");
+            return [metadata.institutionCode || "EVB", "generated", String(lineNumber)].join(":");
+        }
+
+        function buildScientificName(genus, epithet, authorship) {
+            const parts = [clean(genus), clean(epithet), clean(authorship)].filter(Boolean);
+            return parts.join(" ");
+        }
+
+        function buildVerbatimScientificName(row) {
+            const genus = clean(row.genus);
+            const species = clean(row.sp1 || row.species || row.specificepithet);
+            const author = clean(row.author1 || row.scientificnameauthorship || row.scientificnameauthor);
+            return [genus, species, author].filter(Boolean).join(" ");
+        }
+
+        function buildVerbatimDate(day, month, year) {
+            const dd = pad2(day);
+            const mm = pad2(month);
+            const yy = clean(year);
+            if (!yy) return "";
+            return [dd || "", mm || "", yy].filter(Boolean).join("/");
+        }
+
+        function buildIsoDate(year, month, day) {
+            const yyyy = clean(year);
+            if (!/^\d{4}$/.test(yyyy)) return "";
+            if (month && !/^\d{2}$/.test(month)) return yyyy;
+            if (day && !/^\d{2}$/.test(day)) return month ? `${yyyy}-${month}` : yyyy;
+            if (day && month) return `${yyyy}-${month}-${day}`;
+            if (month) return `${yyyy}-${month}`;
+            return yyyy;
+        }
+
+        function normalizeDateValue(value) {
+            const text = clean(value);
+            if (!text) return "";
+            if (/^\d{4}(-\d{2}){0,2}$/.test(text)) return text;
+
+            const matchSlash = text.match(/^(\d{1,2})[\/\-](\d{1,2})[\/\-](\d{4})$/);
+            if (matchSlash) return buildIsoDate(matchSlash[3], pad2(matchSlash[2]), pad2(matchSlash[1]));
+
+            const jsDate = new Date(text);
+            if (!Number.isNaN(jsDate.getTime())) {
+                const yyyy = String(jsDate.getFullYear());
+                const mm = pad2(jsDate.getMonth() + 1);
+                const dd = pad2(jsDate.getDate());
+                return `${yyyy}-${mm}-${dd}`;
+            }
+            return "";
+        }
+
+        function buildJabotVerbatimCoordinate(row, type) {
+            const prefix = type === "lat" ? "lat" : "long";
+            const directionField = type === "lat" ? "ns" : "ew";
+            const degree = clean(row[`${prefix}_grau`] || row[`${prefix}grau`]);
+            const minute = clean(row[`${prefix}_min`] || row[`${prefix}min`]);
+            const second = clean(row[`${prefix}_seg`] || row[`${prefix}seg`]);
+            const direction = clean(row[directionField]).toUpperCase();
+            if (!degree) return "";
+            return `${degree}\u00b0 ${minute || "00"}' ${second || "00"}" ${direction}`.trim();
+        }
+
+        function buildDecimalFromJabot(row, type) {
+            const prefix = type === "lat" ? "lat" : "long";
+            const directionField = type === "lat" ? "ns" : "ew";
+            const degree = parseDecimal(row[`${prefix}_grau`] || row[`${prefix}grau`]);
+            const minute = parseDecimal(row[`${prefix}_min`] || row[`${prefix}min`]) || 0;
+            const second = parseDecimal(row[`${prefix}_seg`] || row[`${prefix}seg`]) || 0;
+            const direction = clean(row[directionField]).toUpperCase();
+            if (!Number.isFinite(degree)) return null;
+            let decimal = Math.abs(degree) + (Math.abs(minute) / 60) + (Math.abs(second) / 3600);
+            if (type === "lat" && direction === "S") decimal *= -1;
+            if (type === "lon" && (direction === "W" || direction === "O")) decimal *= -1;
+            return decimal;
+        }
+
+        function parseDms(value, type) {
+            const text = clean(value).replace(",", ".");
+            if (!text) return null;
+            const direction = (text.match(/[NSEWO]/i) || [""])[0].toUpperCase();
+            const numbers = text.match(/-?\d+(?:\.\d+)?/g)?.map(Number) || [];
+            if (!numbers.length) return null;
+            let decimal = Math.abs(numbers[0]) + ((numbers[1] || 0) / 60) + ((numbers[2] || 0) / 3600);
+            if (numbers[0] < 0 || direction === "S" || direction === "W" || direction === "O") decimal *= -1;
+            if (type === "lat" && Math.abs(decimal) > 90) return null;
+            if (type === "lon" && Math.abs(decimal) > 180) return null;
+            return decimal;
+        }
+
+        function parseDecimal(value) {
+            const text = clean(value).replace(",", ".");
+            if (!text) return null;
+            const parsed = Number(text);
+            return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        function parseLocaleNumber(value) {
+            const text = clean(value);
+            if (!text || /^na$/i.test(text)) return null;
+            const parsed = Number(text.replace(/\./g, "").replace(",", "."));
+            return Number.isFinite(parsed) ? parsed : null;
+        }
+
+        function splitScientificName(value) {
+            const parts = clean(value).split(/\s+/).filter(Boolean);
+            return {
+                genus: parts[0] || "",
+                specificEpithet: parts[1] || ""
+            };
+        }
+
+        function compactID(parts) {
+            return parts
+                .map(part => clean(part))
+                .filter(Boolean)
+                .join(":")
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^A-Za-z0-9:_-]+/g, "")
+                .replace(/:+/g, ":");
+        }
+
+        function deriveCountryCode(country) {
+            const text = normalizeText(country);
+            if (!text) return "";
+            if (["brasil", "brazil"].includes(text)) return "BR";
+            if (text === "paraguai" || text === "paraguay") return "PY";
+            if (text === "argentina") return "AR";
+            if (text === "uruguai" || text === "uruguay") return "UY";
+            if (text === "bolivia") return "BO";
+            return "";
+        }
+
+        function deriveTaxonRank(genus, epithet, family) {
+            if (clean(epithet)) return "species";
+            if (clean(genus)) return "genus";
+            if (clean(family)) return "family";
+            return "";
+        }
+
+        function renderSummary() {
+            const warningCount = state.warnings.length + state.convertedRows.filter(row => row.evbValidationNotes).length;
+            els.summaryCards.innerHTML = [
+                summaryCard(state.convertedRows.length, "Linhas convertidas"),
+                summaryCard(state.measurementRows.length ? `${DARWIN_COLUMNS.length} + ${state.measurementRows.length}` : DARWIN_COLUMNS.length, "Campos/medidas"),
+                summaryCard(warningCount, "Alertas locais"),
+                summaryCard(state.detectedProfile || "-", "Perfil detectado")
+            ].join("");
+            const measurementText = state.measurementRows.length
+                ? ` Tambem foram geradas ${state.measurementRows.length} linhas na aba MeasurementOrFact.`
+                : "";
+            els.summaryMessage.textContent = `Conversao concluida em ${state.convertedRows.length} linha(s). Esta primeira versao ja preserva verbatim e produz uma planilha Darwin Core utilizavel para revisao e compartilhamento.${measurementText}`;
+        }
+
+        function summaryCard(value, label) {
+            return `<div class="status-card"><div class="status-value">${escapeHTML(value)}</div><div class="status-label">${escapeHTML(label)}</div></div>`;
+        }
+
+        function renderValidation() {
+            const rowWarnings = state.convertedRows.filter(row => row.evbValidationNotes);
+            const totalAlerts = rowWarnings.length;
+            const missingCoords = rowWarnings.filter(row => row.evbValidationNotes.includes("coordenadas")).length;
+            const missingScientificName = rowWarnings.filter(row => row.evbValidationNotes.includes("scientificName")).length;
+
+            let level = "ok";
+            let title = "Conversao consistente";
+            let text = "Nenhum alerta relevante foi encontrado nos criterios locais desta primeira etapa.";
+            if (totalAlerts) {
+                level = missingScientificName || missingCoords ? "warn" : "ok";
+                title = "Revisao recomendada";
+                text = `${totalAlerts} linha(s) sairam com alertas locais. Isso nao impede a exportacao, mas indica pontos de revisao antes de publicar ou compartilhar os dados.`;
+            }
+            renderValidationBox(level, title, text);
+
+            if (!rowWarnings.length) {
+                els.warningList.innerHTML = '<div class="empty-state">Nenhum alerta para mostrar.</div>';
+                return;
+            }
+
+            els.warningList.innerHTML = rowWarnings.slice(0, 80).map((row, index) => `
+                <div class="warning-item">
+                    <strong>Linha ${index + 2} - ${escapeHTML(row.catalogNumber || row.occurrenceID)}</strong>
+                    <span class="small">${escapeHTML(row.evbValidationNotes)}</span>
+                </div>
+            `).join("");
+        }
+
+        function renderValidationBox(kind, title, message) {
+            els.validationSummary.className = `alert-box ${kind}`;
+            els.validationSummary.innerHTML = `<h4>${escapeHTML(title)}</h4><p>${escapeHTML(message)}</p>`;
+        }
+
+        function renderMapping() {
+            const entries = Object.entries(state.mappingUsage).sort((a, b) => a[0].localeCompare(b[0], "pt-BR"));
+            if (!entries.length) {
+                els.mappingList.innerHTML = '<div class="empty-state">Nenhum mapeamento registrado.</div>';
+                return;
+            }
+            els.mappingList.innerHTML = entries.map(([target, sources]) => `
+                <div class="mapping-item">
+                    <strong>${escapeHTML(target)}</strong>
+                    <span>${escapeHTML(Array.from(sources).sort().join(", "))}</span>
+                </div>
+            `).join("");
+        }
+
+        function renderPreview() {
+            const rows = state.convertedRows.slice(0, 80);
+            if (!rows.length) {
+                els.previewWrap.innerHTML = '<div class="empty-state" style="padding:0.8rem;">Nenhuma linha convertida.</div>';
+                return;
+            }
+            const columns = DARWIN_COLUMNS;
+            const html = [
+                "<table>",
+                "<tr>",
+                ...columns.map(column => `<th>${escapeHTML(column)}</th>`),
+                "</tr>",
+                ...rows.map(row => `<tr class="${row.__taxonCorrected ? "taxon-corrected-row" : ""}">` + columns.map(column => `<td>${escapeHTML(row[column] ?? "")}</td>`).join("") + "</tr>"),
+                "</table>"
+            ].join("");
+            els.previewWrap.innerHTML = html;
+        }
+
+        async function matchScientificNamesWithGbif() {
+            if (!state.convertedRows.length) {
+                renderValidationBox("warn", "Sem dados convertidos", "Converta uma planilha antes de consultar nomes cientificos.");
+                return;
+            }
+            const names = uniqueScientificNames();
+            if (!names.length) {
+                els.matchStatus.textContent = "Nenhum scientificName preenchido para consultar.";
+                return;
+            }
+
+            els.matchGbifBtn.disabled = true;
+            els.matchGbifBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando';
+            els.matchStatus.textContent = `Consultando ${names.length} nome(s) unico(s) no GBIF Species API...`;
+            els.matchList.innerHTML = '<div class="empty-state">Consulta em andamento.</div>';
+
+            let done = 0;
+            let matched = 0;
+            let corrected = 0;
+            let needsReview = 0;
+            const reviewed = [];
+            const corrections = [];
+
+            for (const name of names) {
+                const result = await fetchGbifMatch(name);
+                state.taxonMatches[normalizeNameKey(name)] = result;
+                if (result?.match) matched += 1;
+                const summary = applyTaxonMatch(name, result);
+                if (summary.corrected) {
+                    corrected += 1;
+                    corrections.push(summary);
+                }
+                if (summary.needsReview) {
+                    needsReview += 1;
+                    reviewed.push(summary);
+                }
+                done += 1;
+                els.matchStatus.textContent = `GBIF: ${done}/${names.length} nome(s) consultado(s). Matches: ${matched}. Corrigidos: ${corrected}. Revisao: ${needsReview}.`;
+                await sleep(90);
+            }
+
+            renderPreview();
+            renderValidation();
+            renderTaxonMatchList(corrections, reviewed, matched, names.length);
+            els.matchGbifBtn.disabled = false;
+            els.matchGbifBtn.innerHTML = '<i class="fas fa-cloud-arrow-down"></i> Consultar GBIF';
+        }
+
+        function uniqueScientificNames() {
+            return Array.from(new Set(state.convertedRows
+                .map(row => clean(row.scientificName))
+                .filter(Boolean)
+                .map(normalizeScientificQuery)
+                .filter(Boolean)));
+        }
+
+        async function fetchGbifMatch(name) {
+            const url = `https://api.gbif.org/v1/species/match?name=${encodeURIComponent(name)}&kingdom=Plantae&verbose=true`;
+            try {
+                const response = await fetch(url, { headers: { Accept: "application/json" } });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                return { match: false, error: error.message, inputName: name };
+            }
+        }
+
+        function applyTaxonMatch(inputName, result) {
+            const key = normalizeNameKey(inputName);
+            const acceptedName = clean(result?.acceptedScientificName || result?.scientificName);
+            const correctedScientificName = acceptedName || clean(result?.scientificName || result?.canonicalName);
+            const confidence = Number(result?.confidence || 0);
+            const matchType = clean(result?.matchType || result?.type || "");
+            const status = clean(result?.status || "");
+            const canonical = clean(result?.canonicalName || result?.species || result?.scientificName);
+            const canCorrect = Boolean(result?.match && confidence >= 90 && correctedScientificName && namesDiffer(inputName, correctedScientificName));
+            const needsReview = !result?.match || confidence < 90;
+            const note = taxonMatchNote(inputName, result, correctedScientificName, confidence, matchType, canCorrect);
+
+            state.convertedRows.forEach(row => {
+                if (normalizeNameKey(row.scientificName) !== key) return;
+                if (canCorrect) {
+                    row.verbatimScientificName = clean(row.verbatimScientificName || row.scientificName || inputName);
+                    row.scientificName = correctedScientificName;
+                    row.__taxonCorrected = true;
+                    row.__taxonCorrectionNote = note;
+                    row.evbValidationNotes = appendNote(row.evbValidationNotes, `scientificName corrigido pelo GBIF: ${inputName} -> ${correctedScientificName}`);
+                    row.evbValidationStatus = "Revisar";
+                }
+                if (result?.kingdom) row.kingdom = result.kingdom;
+                if (result?.family) row.family = result.family;
+                if (result?.genus) row.genus = result.genus;
+                if (canonical) {
+                    const parts = splitScientificName(canonical);
+                    if (parts.genus) row.genus = parts.genus;
+                    if (parts.specificEpithet) row.specificEpithet = parts.specificEpithet;
+                }
+                if (canCorrect && correctedScientificName) {
+                    row.scientificNameAuthorship = extractAuthorship(correctedScientificName, canonical);
+                    row.taxonRank = deriveTaxonRank(row.genus, row.specificEpithet, row.family);
+                }
+            });
+
+            return { inputName, matchedName: correctedScientificName, confidence, matchType, status, corrected: canCorrect, needsReview, note };
+        }
+
+        function renderTaxonMatchList(corrections, reviewed, matched, total) {
+            els.matchStatus.textContent = `Consulta concluida. ${matched}/${total} nome(s) tiveram match no GBIF. ${corrections.length} correcao(oes) aplicadas. ${reviewed.length} precisam de revisao.`;
+            const items = [
+                ...corrections.map(item => ({ ...item, kind: "Corrigido" })),
+                ...reviewed.map(item => ({ ...item, kind: "Revisar" }))
+            ];
+            if (!items.length) {
+                els.matchList.innerHTML = '<div class="empty-state">Nenhuma correcao ou alerta de matching foi encontrado.</div>';
+                return;
+            }
+            els.matchList.innerHTML = items.slice(0, 80).map(item => `
+                <div class="match-item">
+                    <strong>${escapeHTML(item.kind)}: ${escapeHTML(item.inputName)} → ${escapeHTML(item.matchedName || "sem sugestao")}</strong>
+                    <span>${escapeHTML(item.note)}</span>
+                </div>
+            `).join("");
+        }
+
+        function resetTaxonMatchPanel() {
+            els.matchGbifBtn.disabled = !state.convertedRows.length;
+            els.matchGbifBtn.innerHTML = '<i class="fas fa-cloud-arrow-down"></i> Consultar GBIF';
+            els.matchStatus.textContent = "Converta uma planilha para consultar nomes cientificos no GBIF Species API. A consulta e opcional e depende da internet.";
+            els.matchList.innerHTML = '<div class="empty-state">Resultados de matching aparecerao aqui.</div>';
+        }
+
+        function taxonMatchNote(inputName, result, matchedName, confidence, matchType, corrected = false) {
+            if (result?.error) return `Falha na consulta: ${result.error}.`;
+            if (!result?.match) return "Nenhum match retornado pelo GBIF para este nome.";
+            const notes = [`GBIF ${matchType || "match"} com confianca ${confidence}.`];
+            if (corrected) notes.push(`scientificName foi substituido por ${matchedName}.`);
+            else if (matchedName && namesDiffer(inputName, matchedName)) notes.push(`Sugestao/uso aceito: ${matchedName}.`);
+            if (result.status) notes.push(`Status taxonomico: ${result.status}.`);
+            return notes.join(" ");
+        }
+
+        function normalizeScientificQuery(value) {
+            return clean(value).replace(/\s+/g, " ").trim();
+        }
+
+        function normalizeNameKey(value) {
+            return normalizeText(clean(value).replace(/\s+/g, " "));
+        }
+
+        function namesDiffer(first, second) {
+            return normalizeNameKey(first) !== normalizeNameKey(second);
+        }
+
+        function appendNote(existing, note) {
+            const current = clean(existing);
+            const next = clean(note);
+            if (!next) return current;
+            if (!current) return next;
+            return current.includes(next) ? current : `${current} | ${next}`;
+        }
+
+        function extractAuthorship(scientificName, canonicalName) {
+            const full = clean(scientificName);
+            const canonical = clean(canonicalName);
+            if (!full || !canonical || !full.toLowerCase().startsWith(canonical.toLowerCase())) return "";
+            return clean(full.slice(canonical.length));
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function buildWorkbook() {
+            const workbook = XLSX.utils.book_new();
+            const mappingRows = Object.entries(state.mappingUsage).map(([target, sources]) => ({
+                darwinTerm: target,
+                sourceColumns: Array.from(sources).sort().join(", ")
+            }));
+            const reportRows = buildReportRows();
+
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(state.convertedRows, { header: DARWIN_COLUMNS }), "DarwinCore");
+            if (state.measurementRows.length) {
+                XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(state.measurementRows, { header: MEASUREMENT_COLUMNS }), "MeasurementOrFact");
+            }
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(mappingRows), "Mapeamento");
+            XLSX.utils.book_append_sheet(workbook, XLSX.utils.json_to_sheet(reportRows), "Relatorio");
+            return workbook;
+        }
+
+        function buildReportRows() {
+            const rowWarnings = state.convertedRows.filter(row => row.evbValidationNotes);
+            return [
+                { item: "perfil_detectado", valor: state.detectedProfile },
+                { item: "linhas_convertidas", valor: state.convertedRows.length },
+                { item: "linhas_measurement_or_fact", valor: state.measurementRows.length },
+                { item: "colunas_exportadas", valor: DARWIN_COLUMNS.length },
+                { item: "linhas_com_alerta", valor: rowWarnings.length },
+                { item: "datasetName", valor: clean(els.datasetNameInput.value) },
+                { item: "basisOfRecord", valor: clean(els.basisOfRecordInput.value) },
+                { item: "license", valor: clean(els.licenseInput.value) },
+                { item: "rightsHolder", valor: clean(els.rightsHolderInput.value) }
+            ];
+        }
+
+        function downloadXlsx() {
+            if (!state.convertedRows.length) return;
+            XLSX.writeFile(buildWorkbook(), sanitizeFilename(state.workbookName));
+        }
+
+        function downloadCsv() {
+            if (!state.convertedRows.length) return;
+            const worksheet = XLSX.utils.json_to_sheet(state.convertedRows, { header: DARWIN_COLUMNS });
+            const csv = XLSX.utils.sheet_to_csv(worksheet);
+            downloadText(csv, sanitizeFilename(state.workbookName.replace(/\.xlsx$/i, ".csv")), "text/csv;charset=utf-8;");
+        }
+
+        async function copyPreview() {
+            if (!state.convertedRows.length) return;
+            const rows = [DARWIN_COLUMNS, ...state.convertedRows.map(row => DARWIN_COLUMNS.map(column => row[column] ?? ""))];
+            const text = rows.map(row => row.map(cell => String(cell)).join("\t")).join("\n");
+            if (navigator.clipboard?.writeText) {
+                await navigator.clipboard.writeText(text);
+                return;
+            }
+            const textarea = document.createElement("textarea");
+            textarea.value = text;
+            textarea.setAttribute("readonly", "");
+            textarea.style.position = "fixed";
+            textarea.style.opacity = "0";
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            textarea.remove();
+        }
+
+        function downloadText(text, filename, mimeType) {
+            const blob = new Blob([text], { type: mimeType });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            link.remove();
+            URL.revokeObjectURL(link.href);
+        }
+
+        function buildOutputName(inputName) {
+            const stem = inputName.replace(/\.[^.]+$/, "");
+            return sanitizeFilename(`${stem}_darwincore.xlsx`);
+        }
+
+        function sanitizeFilename(name) {
+            const cleanName = name.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_").trim();
+            return cleanName.toLowerCase().endsWith(".xlsx") || cleanName.toLowerCase().endsWith(".csv") ? cleanName : `${cleanName}.xlsx`;
+        }
+
+        function resetTool() {
+            state.rows = [];
+            state.headers = [];
+            state.convertedRows = [];
+            state.measurementRows = [];
+            state.warnings = [];
+            state.mappingUsage = {};
+            state.taxonMatches = {};
+            state.detectedProfile = "";
+            state.workbookName = "evb-darwincore.xlsx";
+            els.fileInput.value = "";
+            els.previewWrap.innerHTML = '<div class="empty-state" style="padding:0.8rem;">O preview da planilha convertida aparecera aqui.</div>';
+            els.mappingList.innerHTML = '<div class="empty-state">O mapeamento efetivo sera listado aqui apos a conversao, mostrando de quais colunas cada termo Darwin Core foi construido.</div>';
+            els.warningList.innerHTML = '<div class="empty-state">Nenhum alerta para mostrar.</div>';
+            resetTaxonMatchPanel();
+            renderValidationBox("ok", "Sem processamento ainda", "Os alertas locais vao aparecer aqui depois da conversao.");
+            els.summaryCards.innerHTML = [
+                summaryCard("0", "Linhas"),
+                summaryCard("0", "Campos Darwin Core"),
+                summaryCard("0", "Alertas"),
+                summaryCard("-", "Perfil detectado")
+            ].join("");
+            els.summaryMessage.textContent = "Carregue uma planilha e execute a conversao para gerar o resumo.";
+            toggleExports(false);
+        }
+
+        function pad2(value) {
+            const text = clean(value);
+            if (!text) return "";
+            return String(text).padStart(2, "0");
+        }
+
+        function normalizeHeader(value) {
+            return normalizeText(value).replace(/[^a-z0-9]/g, "");
+        }
+
+        function normalizeText(value) {
+            return clean(value).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+        }
+
+        function splitPeopleValues(value) {
+            return clean(value)
+                .replace(/\s*\|\s*/g, ";")
+                .replace(/\s+e\s+/gi, ";")
+                .replace(/\s*;\s*/g, ";")
+                .split(";")
+                .map(item => item.trim())
+                .filter(Boolean);
+        }
+
+        function formatPersonName(name) {
+            if (!name) return "";
+            let text = clean(name).replace(/\s+/g, " ");
+            if (/et\s+al\.?/i.test(text)) return "et al.";
+            const parts = text.split(" ").filter(Boolean);
+            const surname = [];
+            const initials = [];
+            const initialPattern = /^[A-Z](\.[A-Z])*\.?$|^[A-Z]{1,3}$/i;
+
+            parts.forEach(part => {
+                const cleaned = part.replace(/,/g, "");
+                if (initialPattern.test(cleaned)) {
+                    initials.push(cleaned.toUpperCase());
+                } else {
+                    surname.push(titleCase(cleaned));
+                }
+            });
+
+            const surnameText = surname.join(" ");
+            const initialsText = initials
+                .map(initial => {
+                    const letters = initial.replace(/\./g, "").toUpperCase();
+                    if (letters.length > 3) return initial;
+                    return letters.split("").join(".") + ".";
+                })
+                .join(" ");
+
+            if (!surnameText) return initialsText;
+            if (!initialsText) return surnameText;
+            return `${surnameText}, ${initialsText}`;
+        }
+
+        function joinFormattedPeople(primary, additional) {
+            const values = [primary, additional]
+                .flatMap(splitPeopleValues)
+                .map(formatPersonName)
+                .filter(Boolean);
+            return Array.from(new Set(values)).join(" | ");
+        }
+
+        function titleCase(value) {
+            const connectors = new Set(["a", "as", "da", "das", "de", "do", "dos", "e"]);
+            let wordIndex = 0;
+            return clean(value).toLocaleLowerCase("pt-BR").replace(/\p{L}[\p{L}\p{M}]*/gu, word => {
+                const normalized = word.normalize("NFC");
+                const result = wordIndex > 0 && connectors.has(normalized)
+                    ? normalized
+                    : normalized.charAt(0).toLocaleUpperCase("pt-BR") + normalized.slice(1);
+                wordIndex += 1;
+                return result;
+            });
+        }
+
+        function clean(value) {
+            return repairTextEncoding(String(value ?? "")).trim();
+        }
+
+        function repairTextEncoding(value) {
+            let text = value.normalize("NFC");
+            if (/[ÃƒÃ‚]/.test(text)) {
+                try {
+                    const bytes = Uint8Array.from(text, char => char.charCodeAt(0) & 0xff);
+                    const repaired = new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+                    if (!repaired.includes("\uFFFD")) text = repaired;
+                } catch (error) {}
+            }
+            if (text.includes("\uFFFD")) {
+                text = text
+                    .replace(/Herb\uFFFDcea/gi, "Herb\u00e1cea")
+                    .replace(/arb\uFFFDrea/gi, "arb\u00f3rea")
+                    .replace(/Arb\uFFFDrea/gi, "Arb\u00f3rea")
+                    .replace(/cori\uFFFDcea/gi, "cori\u00e1cea")
+                    .replace(/isolad\uFFFD/gi, "isolada")
+                    .replace(/compost\uFFFD/gi, "composta")
+                    .replace(/\uFFFDrvore/g, "\u00c1rvore")
+                    .replace(/\uFFFDrvore/gi, "\u00e1rvore")
+                    .replace(/l\uFFFDtex/gi, "l\u00e1tex");
+            }
+            text = text
+                .replace(/Herb\?cea/gi, "Herb\u00e1cea")
+                .replace(/arb\?rea/gi, "arb\u00f3rea")
+                .replace(/Arb\?rea/gi, "Arb\u00f3rea")
+                .replace(/cori\?cea/gi, "cori\u00e1cea")
+                .replace(/compost\? /gi, "composta ")
+                .replace(/\?rvore/g, "\u00c1rvore")
+                .replace(/\?rvore/gi, "\u00e1rvore")
+                .replace(/l\?tex/gi, "l\u00e1tex");
+            text = text
+                .replace(/\u00c2\u00b0/g, "\u00b0")
+                .replace(/\u00e2\u20ac\u2122/g, "'")
+                .replace(/\u00e2\u20ac\u0153/g, '"')
+                .replace(/\u00e2\u20ac/g, '"');
+            return text;
+        }
+
+        function escapeHTML(value) {
+            return String(value ?? "")
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
+

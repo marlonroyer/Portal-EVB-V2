@@ -1,0 +1,74 @@
+:root {
+    --green-950: #07332f;
+    --green-900: #0b3f39;
+    --green-800: #0f5148;
+    --green-700: #17675b;
+    --green-600: #247f70;
+    --mint-300: #78d6c3;
+    --gold-500: #f3b233;
+    --gold-600: #d99a1f;
+    --rust-500: #c5522a;
+    --red-600: #b9362d;
+    --cream-100: #f7efe5;
+    --cream-200: #ead6c1;
+    --stone-100: #f5f2ed;
+    --stone-200: #e4ddd2;
+    --stone-700: #4d463e;
+    --ink-900: #171614;
+    --ink-700: #2e2b26;
+
+    --page-bg: #edf3ef;
+    --surface: #ffffff;
+    --surface-muted: #f8f4ee;
+    --surface-strong: #f0e4d4;
+    --text-primary: var(--ink-900);
+    --text-secondary: #665d52;
+    --text-inverse: var(--cream-100);
+    --border: rgba(23, 22, 20, 0.12);
+    --border-strong: rgba(23, 22, 20, 0.2);
+    --focus: rgba(243, 178, 51, 0.72);
+
+    --shadow-sm: 0 1px 2px rgba(12, 31, 27, 0.12);
+    --shadow-md: 0 10px 28px rgba(12, 31, 27, 0.16);
+
+    --radius-sm: 6px;
+    --radius-md: 8px;
+    --radius-lg: 12px;
+}
+
+.eyebrow {
+    color: var(--green-700);
+    font-size: 0.74rem;
+    font-weight: 800;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.status-pill {
+    align-items: center;
+    background: rgba(36, 127, 112, 0.12);
+    border: 1px solid rgba(36, 127, 112, 0.28);
+    border-radius: 999px;
+    color: var(--green-800);
+    display: inline-flex;
+    font-size: 0.82rem;
+    font-weight: 700;
+    min-height: 36px;
+    padding: 0 0.85rem;
+}
+
+.icon-button {
+    align-items: center;
+    background: var(--green-900);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: var(--radius-sm);
+    color: var(--text-inverse);
+    display: inline-flex;
+    height: 38px;
+    justify-content: center;
+    width: 38px;
+}
+
+.icon-button:hover {
+    background: var(--green-700);
+}

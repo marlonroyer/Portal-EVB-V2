@@ -1,0 +1,162 @@
+﻿<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Gerador de etiquetas para caixas e organização física da coleção do Herbário Evaldo Buttura">
+    <meta name="theme-color" content="#16665A">
+    
+    <title>EVB Labels Collection - Etiquetas de Caixas</title>
+    
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏷️</text></svg>">
+    
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- CSS Principal -->
+    <link rel="stylesheet" href="styles.css?v=20260706a">
+    <link rel="stylesheet" href="../shared/tool-standard.css?v=20260530h">
+    
+    <!-- Bibliotecas -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.0/papaparse.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+</head>
+<body>
+    <!-- Header -->
+    <header class="app-header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-tags"></i>
+                <h1>EVB <span>Labels Collection</span></h1>
+            </div>
+            <p class="subtitle">Geração de etiquetas para caixas e organização física da coleção EVB</p>
+        </div>
+    </header>
+
+    <!-- Container Principal -->
+    <main class="main-container">
+        <!-- Card de Upload -->
+        <div class="card upload-card" id="uploadCard">
+            <div class="card-header">
+                <i class="fas fa-file-excel"></i>
+                <h2>Carregar Planilha</h2>
+            </div>
+            <div class="card-body">
+                <div class="source-actions">
+                    <button type="button" id="loadGoogleSheet" class="btn btn-success">
+                        <i class="fas fa-rotate"></i> Atualizar pelo mapa da coleção
+                    </button>
+                    <span class="source-status" id="sourceStatus">Use a planilha local ou sincronize com as abas A1-A8 do Google Sheets.</span>
+                </div>
+                <div class="upload-area" id="dropZone">
+                    <input type="file" id="csvFile" accept=".csv,.xls,.xlsx" hidden>
+                    <div class="upload-content">
+                        <i class="fas fa-cloud-upload-alt upload-icon"></i>
+                        <p class="upload-text">Arraste e solte a planilha aqui</p>
+                        <p class="upload-subtext">ou clique para selecionar</p>
+                        <button class="btn btn-primary" onclick="document.getElementById('csvFile').click()">
+                            <i class="fas fa-folder-open"></i> Selecionar Arquivo
+                        </button>
+                        <p class="file-info">Formatos aceitos: .xls, .xlsx ou .csv com colunas ID, Família e Intervalos</p>
+                    </div>
+                </div>
+                <div class="file-selected" id="fileSelected" style="display: none;">
+                    <i class="fas fa-check-circle"></i>
+                    <span id="fileName"></span>
+                    <button class="btn btn-sm" onclick="document.getElementById('csvFile').click()">
+                        <i class="fas fa-exchange-alt"></i> Trocar
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Card de Filtro -->
+        <div class="card filter-card">
+            <div class="card-header">
+                <i class="fas fa-filter"></i>
+                <h2>Filtrar Etiquetas</h2>
+            </div>
+            <div class="card-body">
+                <div class="filter-grid">
+                    <div class="filter-item">
+                        <label for="idEspecificos">
+                            <i class="fas fa-box"></i> Caixa(s) específica(s)
+                        </label>
+                        <input type="text" id="idEspecificos" placeholder="Ex: 046 ou 046, 052" class="form-control">
+                        <small>Opcional: informe uma ou mais caixas separadas por vírgula</small>
+                    </div>
+                    <div class="filter-item">
+                        <label for="idInicio">
+                            <i class="fas fa-hashtag"></i> ID Inicial
+                        </label>
+                        <input type="text" id="idInicio" placeholder="Ex: 001" class="form-control">
+                        <small>Digite apenas os dígitos</small>
+                    </div>
+                    <div class="filter-item">
+                        <label for="idFim">
+                            <i class="fas fa-hashtag"></i> ID Final
+                        </label>
+                        <input type="text" id="idFim" placeholder="Ex: 024" class="form-control">
+                        <small>Digite apenas os 3 dígitos</small>
+                    </div>
+                </div>
+                <button id="filtrar" class="btn btn-success btn-lg btn-block mt-2">
+                    <i class="fas fa-search"></i> Filtrar Etiquetas
+                </button>
+            </div>
+        </div>
+
+        <!-- Card de Preview -->
+        <div class="card preview-card" id="previewCard" style="display: none;">
+            <div class="card-header">
+                <i class="fas fa-eye"></i>
+                <h2>Pré-visualização</h2>
+                <span class="badge badge-info" id="etiquetasCount"></span>
+                <div class="result-actions">
+                    <button id="gerar-pdf" class="btn btn-download">
+                        <i class="fas fa-file-pdf"></i> Gerar PDF
+                    </button>
+                </div>
+            </div>
+            <div class="card-body">
+                <div id="etiquetas-container"></div>
+                <div id="emptyPreview" class="empty-state">
+                    <i class="fas fa-inbox"></i>
+                    <p>Nenhuma etiqueta para exibir</p>
+                    <small>Carregue uma planilha e aplique o filtro</small>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="app-footer">
+        <div class="footer-content">
+            <div class="footer-section">
+                <h3>Herbário Evaldo Buttura</h3>
+                <p>Ferramenta digital de apoio à rotina de coleções botânicas.</p>
+                <p>Uso interno - EVB / UNILA.</p>
+            </div>
+            <div class="footer-section">
+                <h3>EVB Labels Collection</h3>
+                <p>Geração de etiquetas para caixas, armários, prateleiras e pacotes da coleção.</p>
+                <p>Versão 2.0 - Maio de 2026.</p>
+            </div>
+            <div class="footer-section">
+                <h3>Desenvolvimento</h3>
+                <p>Marlon Royer de Morais</p>
+                <p>Portal EVB - Ferramentas Digitais.</p>
+            </div>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Herbário Evaldo Buttura. Sistema desenvolvido para organização, processamento e impressão de dados botânicos.</p>
+        </div>
+    </footer>
+
+    <!-- Script Principal -->
+    <script src="script.js?v=20260706a"></script>
+</body>
+</html>
