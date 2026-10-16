@@ -1,0 +1,475 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Base metodológica da ferramenta EVB GeoCheck do Portal EVB.">
+    <title>Base metodológica - EVB GeoCheck</title>
+    <!--
+        Documento metodológico da ferramenta EVB GeoCheck.
+        O texto credita explicitamente GBIF Georeferencing Quick Reference Guide,
+        GBIF Georeferencing Best Practices, Darwin Core, Leaflet e GeoPick como
+        referências conceituais/metodológicas. A ferramenta do Portal EVB não
+        incorpora código do GeoPick.
+    -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        :root {
+            --evb-green-950: #07332f;
+            --evb-green-900: #0b3f39;
+            --evb-green-800: #0f5148;
+            --evb-gold-500: #f3b233;
+            --evb-cream-100: #f7efe5;
+            --evb-cream-200: #ead6c1;
+            --evb-stone-100: #f5f2ed;
+            --evb-stone-700: #4d463e;
+            --evb-ink-900: #171614;
+            --evb-border: rgba(23, 22, 20, 0.14);
+            --evb-radius: 8px;
+            --evb-shadow: 0 10px 28px rgba(12, 31, 27, 0.14);
+        }
+
+        * { box-sizing: border-box; }
+
+        html {
+            min-width: 320px;
+            scroll-behavior: smooth;
+        }
+
+        body {
+            background: linear-gradient(135deg, #edf3ef 0%, #f6f1ea 100%);
+            color: var(--evb-ink-900);
+            font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+        }
+
+        .app-header {
+            background: linear-gradient(135deg, var(--evb-green-950), var(--evb-green-800));
+            border-bottom: 3px solid var(--evb-gold-500);
+            color: var(--evb-cream-100);
+            padding: 1.25rem;
+        }
+
+        .header-content,
+        .main-container,
+        .footer-content {
+            margin: 0 auto;
+            width: min(100% - 2rem, 1180px);
+        }
+
+        .header-content {
+            align-items: center;
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+        }
+
+        .brand {
+            align-items: center;
+            display: flex;
+            gap: 0.85rem;
+        }
+
+        .brand i {
+            align-items: center;
+            background: rgba(243, 178, 51, 0.16);
+            border: 1px solid rgba(243, 178, 51, 0.42);
+            border-radius: var(--evb-radius);
+            color: var(--evb-gold-500);
+            display: inline-flex;
+            flex: 0 0 44px;
+            font-size: 1.35rem;
+            height: 44px;
+            justify-content: center;
+            width: 44px;
+        }
+
+        h1 {
+            font-size: clamp(1.45rem, 3vw, 2.2rem);
+            line-height: 1.1;
+            margin: 0;
+        }
+
+        h1 span { color: var(--evb-gold-500); }
+
+        .subtitle {
+            color: var(--evb-cream-200);
+            font-size: 0.95rem;
+            font-weight: 600;
+            margin: 0.35rem 0 0;
+            max-width: 720px;
+        }
+
+        .back-link {
+            align-items: center;
+            background: rgba(243, 178, 51, 0.14);
+            border: 1px solid rgba(243, 178, 51, 0.42);
+            border-radius: var(--evb-radius);
+            color: var(--evb-cream-100);
+            display: inline-flex;
+            font-size: 0.86rem;
+            font-weight: 800;
+            gap: 0.45rem;
+            padding: 0.55rem 0.75rem;
+            text-decoration: none;
+            white-space: nowrap;
+        }
+
+        .back-link:hover,
+        .back-link:focus-visible {
+            background: var(--evb-gold-500);
+            color: var(--evb-green-950);
+        }
+
+        .main-container {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: 260px minmax(0, 1fr);
+            padding: 1.35rem 0 2rem;
+        }
+
+        .toc {
+            align-self: start;
+            background: rgba(255, 255, 255, 0.76);
+            border: 1px solid var(--evb-border);
+            border-radius: var(--evb-radius);
+            box-shadow: 0 1px 2px rgba(12, 31, 27, 0.08);
+            padding: 0.8rem;
+            position: sticky;
+            top: 1rem;
+        }
+
+        .toc h2 {
+            color: var(--evb-green-950);
+            font-size: 0.95rem;
+            margin: 0 0 0.65rem;
+        }
+
+        .toc a {
+            border-radius: 6px;
+            color: var(--evb-stone-700);
+            display: block;
+            font-size: 0.88rem;
+            font-weight: 700;
+            padding: 0.42rem 0.5rem;
+            text-decoration: none;
+        }
+
+        .toc a:hover,
+        .toc a:focus-visible {
+            background: #f7efe5;
+            color: var(--evb-green-950);
+        }
+
+        .content {
+            display: grid;
+            gap: 1rem;
+            min-width: 0;
+        }
+
+        .panel {
+            background: rgba(255, 255, 255, 0.86);
+            border: 1px solid var(--evb-border);
+            border-radius: var(--evb-radius);
+            box-shadow: 0 1px 2px rgba(12, 31, 27, 0.08);
+            overflow: hidden;
+        }
+
+        .panel h2 {
+            background: linear-gradient(135deg, var(--evb-green-900), #17675b);
+            border-bottom: 2px solid var(--evb-gold-500);
+            color: var(--evb-cream-100);
+            font-size: 1rem;
+            margin: 0;
+            padding: 0.8rem 1rem;
+        }
+
+        .panel-body {
+            display: grid;
+            gap: 0.9rem;
+            padding: 1rem;
+        }
+
+        h3 {
+            color: var(--evb-green-950);
+            font-size: 1rem;
+            margin: 0.35rem 0 0;
+        }
+
+        p { margin: 0; }
+
+        ul,
+        ol {
+            margin: 0;
+            padding-left: 1.25rem;
+        }
+
+        li + li { margin-top: 0.35rem; }
+
+        code {
+            background: #f7efe5;
+            border: 1px solid var(--evb-border);
+            border-radius: 5px;
+            color: var(--evb-green-950);
+            font-family: Consolas, "Liberation Mono", monospace;
+            font-size: 0.92em;
+            padding: 0.05rem 0.25rem;
+        }
+
+        .note {
+            background: #f8f5ef;
+            border-left: 4px solid var(--evb-gold-500);
+            border-radius: 6px;
+            padding: 0.8rem;
+        }
+
+        .grid {
+            display: grid;
+            gap: 0.8rem;
+            grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+        }
+
+        .mini-card {
+            background: #fff;
+            border: 1px solid var(--evb-border);
+            border-radius: var(--evb-radius);
+            padding: 0.85rem;
+        }
+
+        .mini-card strong {
+            color: var(--evb-green-950);
+            display: block;
+            margin-bottom: 0.3rem;
+        }
+
+        a {
+            color: #0f6659;
+            font-weight: 800;
+        }
+
+        .references {
+            padding-left: 1.1rem;
+        }
+
+        .references li {
+            margin-bottom: 0.65rem;
+        }
+
+        .app-footer {
+            background: var(--evb-green-950);
+            border-top: 3px solid var(--evb-gold-500);
+            color: var(--evb-cream-200);
+            padding: 1rem 1.25rem;
+        }
+
+        .footer-content {
+            display: flex;
+            flex-wrap: wrap;
+            font-size: 0.86rem;
+            gap: 0.75rem 1.5rem;
+            justify-content: space-between;
+        }
+
+        @media (max-width: 900px) {
+            .header-content {
+                align-items: flex-start;
+                flex-direction: column;
+            }
+
+            .main-container {
+                grid-template-columns: 1fr;
+            }
+
+            .toc {
+                position: static;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-content">
+            <div class="brand">
+                <i class="fas fa-map-location-dot" aria-hidden="true"></i>
+                <div>
+                    <h1>Base metodológica <span>EVB GeoCheck</span></h1>
+                    <p class="subtitle">Documento interno do Portal EVB sobre georreferenciamento assistido, rastreabilidade curatorial e créditos metodológicos.</p>
+                </div>
+            </div>
+            <a class="back-link" href="index.html">
+                <i class="fas fa-arrow-left" aria-hidden="true"></i> Voltar à ferramenta
+            </a>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <nav class="toc" aria-label="Sumário">
+            <h2>Sumário</h2>
+            <a href="#proposito">Propósito</a>
+            <a href="#fontes">Fontes e créditos</a>
+            <a href="#conceitos">Conceitos usados</a>
+            <a href="#fluxo">Fluxo da ferramenta</a>
+            <a href="#campos">Campos preenchidos</a>
+            <a href="#rastreabilidade">Rastreabilidade</a>
+            <a href="#limites">Limites e cautelas</a>
+            <a href="#referencias">Referências</a>
+        </nav>
+
+        <div class="content">
+            <section class="panel" id="proposito">
+                <h2>Propósito da ferramenta</h2>
+                <div class="panel-body">
+                    <p>A ferramenta <strong>EVB GeoCheck</strong> foi criada para apoiar a rotina curatorial do Herbário Evaldo Buttura (EVB) em tarefas de visualização espacial, conversão de coordenadas e georreferenciamento assistido de registros botânicos.</p>
+                    <p>Seu uso principal é auxiliar a interpretação de registros que possuem descrições textuais de localidade, mas não possuem coordenadas geográficas preenchidas. A ferramenta não substitui a decisão curatorial: ela organiza evidências, permite desenhar uma área provável, calcula um ponto central aproximado e registra a incerteza e a origem da decisão tomada.</p>
+                    <div class="note">
+                        <p><strong>Princípio adotado:</strong> uma coordenada inferida deve ser acompanhada de contexto, método, fonte consultada e incerteza. Quando não houver segurança suficiente, o registro deve permanecer sem coordenada ou ser marcado como pendente de revisão.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel" id="fontes">
+                <h2>Fontes e créditos metodológicos</h2>
+                <div class="panel-body">
+                    <p>O desenho conceitual desta ferramenta foi inspirado em materiais públicos do GBIF e em práticas consolidadas de georreferenciamento de dados de biodiversidade. Nenhum código do GeoPick foi incorporado ao Portal EVB; a ferramenta foi desenvolvida internamente, usando bibliotecas abertas comuns para mapas e planilhas.</p>
+                    <div class="grid">
+                        <div class="mini-card">
+                            <strong>GBIF Georeferencing Quick Reference Guide</strong>
+                            <p>Usado como referência para o raciocínio prático de georreferenciamento, especialmente a abordagem ponto-raio, a noção de centro corrigido, radial geográfico, incerteza e documentação do processo.</p>
+                        </div>
+                        <div class="mini-card">
+                            <strong>GBIF Georeferencing Best Practices</strong>
+                            <p>Usado como referência conceitual para qualidade, padronização, fluxo de trabalho, documentação, conferência e treinamento em projetos de georreferenciamento.</p>
+                        </div>
+                        <div class="mini-card">
+                            <strong>GeoPick</strong>
+                            <p>Usado como inspiração de interface e fluxo de trabalho: localizar uma área, delimitar uma geometria provável, calcular centroide/incerteza e produzir informação reutilizável em padrões de biodiversidade.</p>
+                        </div>
+                    </div>
+                    <p>A implementação do Portal EVB utiliza <strong>Leaflet</strong> para mapa interativo, <strong>Leaflet.draw</strong> para desenho de formas, <strong>Leaflet.markercluster</strong> para agrupamento de pontos, <strong>Leaflet.heat</strong> para mapa de calor e <strong>SheetJS</strong> para leitura e exportação de planilhas.</p>
+                </div>
+            </section>
+
+            <section class="panel" id="conceitos">
+                <h2>Conceitos usados pela ferramenta</h2>
+                <div class="panel-body">
+                    <div class="grid">
+                        <div class="mini-card">
+                            <strong>Georreferenciamento</strong>
+                            <p>Interpretação de uma descrição de localidade em uma representação espacial, normalmente com coordenadas, datum, incerteza e observações sobre o método utilizado.</p>
+                        </div>
+                        <div class="mini-card">
+                            <strong>Localidade textual</strong>
+                            <p>Informação original do registro, como país, estado, município, localidade, unidade de conservação, notas de coleta e observações.</p>
+                        </div>
+                        <div class="mini-card">
+                            <strong>Área provável</strong>
+                            <p>Forma desenhada no mapa ou contorno retornado por busca geográfica que representa a interpretação curatorial da localidade descrita.</p>
+                        </div>
+                        <div class="mini-card">
+                            <strong>Centroide estimado</strong>
+                            <p>Ponto central calculado a partir da forma desenhada. Ele representa uma aproximação operacional, não necessariamente o ponto exato de coleta.</p>
+                        </div>
+                        <div class="mini-card">
+                            <strong>Incerteza</strong>
+                            <p>Distância aproximada, em metros, entre o centroide e a borda mais distante da forma usada. Na ferramenta, ela expressa principalmente a extensão espacial da área delimitada.</p>
+                        </div>
+                        <div class="mini-card">
+                            <strong>Forma WKT</strong>
+                            <p>Representação textual da geometria usada, útil para documentação e interoperabilidade com sistemas que aceitam dados espaciais.</p>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel" id="fluxo">
+                <h2>Fluxo de georreferenciamento assistido</h2>
+                <div class="panel-body">
+                    <ol>
+                        <li>Carregar uma planilha no modelo JABOT ou em formato compatível.</li>
+                        <li>A ferramenta identifica registros com coordenadas válidas e registros sem coordenadas reconhecidas.</li>
+                        <li>Na seção <strong>Georreferenciamento assistido</strong>, o usuário seleciona um registro sem coordenada.</li>
+                        <li>A ferramenta exibe as informações textuais disponíveis, como município, localidade, unidade de conservação e notas.</li>
+                        <li>Quando houver registros do mesmo coletor com coordenadas na mesma planilha, a ferramenta exibe pistas espaciais para orientar a interpretação.</li>
+                        <li>O usuário pode buscar uma localidade no mapa, usar o contorno retornado pela busca ou desenhar manualmente uma forma provável.</li>
+                        <li>A ferramenta calcula o centroide, estima a incerteza e permite aplicar os valores aos campos de coordenadas da planilha.</li>
+                        <li>A ação é registrada no histórico da sessão, permitindo copiar uma trilha de auditoria do que foi feito.</li>
+                    </ol>
+                    <div class="note">
+                        <p>A busca por localidade é um apoio, não uma validação automática. O resultado retornado por serviços externos deve ser revisado no mapa e confrontado com a descrição original do exemplar.</p>
+                    </div>
+                </div>
+            </section>
+
+            <section class="panel" id="campos">
+                <h2>Campos preenchidos pela ferramenta</h2>
+                <div class="panel-body">
+                    <p>Ao aplicar uma coordenada estimada, a ferramenta preenche os campos usados no fluxo JABOT do EVB:</p>
+                    <ul>
+                        <li><code>latitude</code> e <code>longitude</code>: coordenadas em graus decimais.</li>
+                        <li><code>lat_grau</code>, <code>lat_min</code>, <code>lat_seg</code> e <code>ns</code>: latitude em graus, minutos, segundos e hemisfério.</li>
+                        <li><code>long_grau</code>, <code>long_min</code>, <code>long_seg</code> e <code>ew</code>: longitude em graus, minutos, segundos e hemisfério.</li>
+                    </ul>
+                    <p>Além desses campos, o histórico da sessão registra informações curatoriais complementares, como origem da geometria, tipo de forma, incerteza aproximada e WKT. Esses dados podem orientar uma futura expansão para campos Darwin Core, como <code>coordinateUncertaintyInMeters</code>, <code>georeferencedBy</code>, <code>georeferencedDate</code>, <code>georeferenceProtocol</code>, <code>georeferenceSources</code> e <code>georeferenceRemarks</code>.</p>
+                </div>
+            </section>
+
+            <section class="panel" id="rastreabilidade">
+                <h2>Rastreabilidade e responsabilidade curatorial</h2>
+                <div class="panel-body">
+                    <p>Todo georreferenciamento inferido deve ser tratado como uma decisão interpretativa. Por isso, a ferramenta foi planejada para manter um histórico de sessão, com dados suficientes para revisar posteriormente o que foi aplicado.</p>
+                    <p>Quando uma coordenada é adicionada a um registro sem coordenada original, recomenda-se registrar:</p>
+                    <ul>
+                        <li>qual localidade textual foi interpretada;</li>
+                        <li>quais fontes foram consultadas;</li>
+                        <li>se foi usado contorno retornado por busca ou desenho manual;</li>
+                        <li>qual incerteza foi atribuída;</li>
+                        <li>quem realizou a revisão e em qual data;</li>
+                        <li>quais dúvidas permaneceram.</li>
+                    </ul>
+                    <p>Esse cuidado é importante porque a coordenada adicionada posteriormente não deve apagar a história do registro. Ela deve complementar o dado original, preservando a possibilidade de auditoria.</p>
+                </div>
+            </section>
+
+            <section class="panel" id="limites">
+                <h2>Limites e cautelas</h2>
+                <div class="panel-body">
+                    <ul>
+                        <li>A ferramenta não prova que um exemplar foi coletado exatamente no ponto calculado; ela produz uma aproximação documentada.</li>
+                        <li>Coordenadas inferidas a partir de descrições vagas devem receber incerteza maior.</li>
+                        <li>Contornos retornados por buscadores podem estar incorretos, incompletos ou representar uma escala diferente da localidade descrita.</li>
+                        <li>Registros de doação, registros históricos e registros com localidade ambígua devem ser tratados com cautela curatorial adicional.</li>
+                        <li>Se a localidade não puder ser interpretada com segurança, é preferível marcar o registro como não resolvido a preencher uma coordenada pouco defensável.</li>
+                        <li>A incerteza calculada pela ferramenta representa principalmente a geometria delimitada e não incorpora automaticamente todas as fontes possíveis de erro, como precisão do mapa, erro histórico, erro de transcrição ou mudança de limites administrativos.</li>
+                    </ul>
+                </div>
+            </section>
+
+            <section class="panel" id="referencias">
+                <h2>Referências e links consultados</h2>
+                <div class="panel-body">
+                    <ol class="references">
+                        <li>Zermoglio, P. F., Chapman, A. D., Wieczorek, J. R., Luna, M. C. & Bloom, D. A. (2020). <em>Georeferencing Quick Reference Guide</em>. Copenhagen: GBIF Secretariat. DOI: <a href="https://doi.org/10.35035/e09p-h128" target="_blank" rel="noopener">10.35035/e09p-h128</a>. Disponível em: <a href="https://docs.gbif.org/georeferencing-quick-reference-guide/1.0/en/" target="_blank" rel="noopener">docs.gbif.org/georeferencing-quick-reference-guide</a>.</li>
+                        <li>Chapman, A. D. & Wieczorek, J. R. (2020). <em>Georeferencing Best Practices</em>. Copenhagen: GBIF Secretariat. DOI: <a href="https://doi.org/10.15468/doc-gg7h-s853" target="_blank" rel="noopener">10.15468/doc-gg7h-s853</a>. Disponível em: <a href="https://docs.gbif.org/georeferencing-best-practices/1.0/en/" target="_blank" rel="noopener">docs.gbif.org/georeferencing-best-practices</a>.</li>
+                        <li>Marcer, A., Escobar, A., Chapman, A. D. & Wieczorek, J. R. (2023). <em>GeoPick: Enhancing georeferencing efficiency through best practices</em> [aplicação web, versão 2.1.1]. Disponível em: <a href="https://geopick.gbif.org/about.html" target="_blank" rel="noopener">geopick.gbif.org/about.html</a> e <a href="https://github.com/rtdeb/GeoPick" target="_blank" rel="noopener">github.com/rtdeb/GeoPick</a>.</li>
+                        <li>TDWG Darwin Core. Termos relacionados a localização e georreferenciamento. Disponível em: <a href="https://dwc.tdwg.org/terms/" target="_blank" rel="noopener">dwc.tdwg.org/terms</a>.</li>
+                        <li>Leaflet. Biblioteca JavaScript aberta para mapas interativos. Disponível em: <a href="https://leafletjs.com/" target="_blank" rel="noopener">leafletjs.com</a>.</li>
+                    </ol>
+                    <div class="note">
+                        <p><strong>Crédito de inspiração:</strong> a ferramenta do Portal EVB foi desenhada para atender ao fluxo interno do herbário, mas reconhece explicitamente a influência conceitual dos guias do GBIF e do GeoPick na forma de organizar a busca, delimitação, cálculo e documentação de coordenadas inferidas.</p>
+                    </div>
+                </div>
+            </section>
+        </div>
+    </main>
+
+    <footer class="app-footer">
+        <div class="footer-content">
+            <span>Portal EVB - EVB GeoCheck</span>
+            <span>Herbário Evaldo Buttura</span>
+            <span>Desenvolvido por Marlon Royer de Morais</span>
+            <span>2026</span>
+        </div>
+    </footer>
+</body>
+</html>

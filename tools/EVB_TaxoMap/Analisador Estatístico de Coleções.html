@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EVB TaxoMap</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js"></script>
+
+<link rel="stylesheet" href="../shared/tool-standard.css?v=20261016a">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<header class="app-header">
+  <div class="header-content">
+    <div class="logo">
+      <span class="tool-mark" aria-hidden="true">⌘</span>
+      <h1>EVB <span>TaxoMap</span></h1>
+    </div>
+    <p class="subtitle">Análise estatística de coleções botânicas e micológicas</p>
+  </div>
+</header>
+
+<main class="app">
+  <section class="tool-intro">
+    <p>Gera indicadores, gráficos, tabelas, filtros e relatórios a partir de planilhas no modelo JABOT.</p>
+  </section>
+  <section class="upload-section">
+    <label for="fileInput" class="btn">📂 Selecionar planilha</label>
+    <input type="file" id="fileInput" accept=".xlsx,.xls" hidden>
+    <div class="file-info" id="fileInfo">Nenhum arquivo carregado.</div>
+    <div class="model-picker">
+      <label for="modelChoice">Modelo:</label>
+      <select id="modelChoice" title="Modelo da planilha. Por padrão é detectado automaticamente.">
+        <option value="auto" selected>Detectar automaticamente</option>
+        <option value="complete">Completa — com classificações superiores</option>
+        <option value="simplified">Simplificada — sem classificações superiores</option>
+      </select>
+    </div>
+    <div id="exportButtons" style="display:none;gap:8px;flex-wrap:wrap;">
+      <button class="btn secondary" onclick="exportStatsExcel()">📊 Exportar estatísticas (Excel)</button>
+      <button class="btn secondary" onclick="exportDataExcel()">📄 Exportar dados processados</button>
+      <button class="btn secondary" onclick="exportPDF()">🧾 Relatório PDF (geral)</button>
+    </div>
+  </section>
+
+  <div id="alert" class="alert"></div>
+
+  <section id="dashboard" style="display:none;">
+    <div class="cards" id="cards"></div>
+    <section class="filters-section">
+      <h3>Filtros interativos (encadeados)</h3>
+      <div class="filters-grid" id="filtersGrid"></div>
+      <div class="filter-actions">
+        <button class="btn ghost" onclick="clearFilters()">Limpar filtros</button>
+        <input type="text" id="searchBox" placeholder="🔎 Pesquisar táxon (família, gênero, espécie, ordem, classe, filo...)" oninput="applySearch(this.value)">
+      </div>
+    </section>
+    <nav class="tabs" id="tabs"></nav>
+    <div class="tab-content" id="tabContent"></div>
+  </section>
+</main>
+
+<footer class="app-footer">
+  <div class="footer-content">
+    <section class="footer-section"><h3>Herbário EVB</h3><p>Herbário Evaldo Buttura · UNILA</p></section>
+    <section class="footer-section"><h3>EVB TaxoMap</h3><p>Processamento local da planilha e exportação de análises em Excel e PDF.</p></section>
+    <section class="footer-section"><h3>Entrada esperada</h3><p>Planilhas JABOT completas ou simplificadas, em XLS ou XLSX.</p></section>
+  </div>
+</footer>
+
+<script src="script.js" defer></script>
+</body>
+</html>

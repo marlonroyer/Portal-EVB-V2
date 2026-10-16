@@ -1,0 +1,1671 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Ferramenta para revisão curatorial de planilhas botânicas do Herbário Evaldo Buttura.">
+    <title>EVB Revisão</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <style>
+        :root {
+            --evb-green-950: #07332f;
+            --evb-green-900: #0b3f39;
+            --evb-green-800: #0f5148;
+            --evb-gold-500: #f3b233;
+            --evb-gold-600: #d99a1f;
+            --evb-cream-100: #f7efe5;
+            --evb-cream-200: #ead6c1;
+            --evb-stone-100: #f5f2ed;
+            --evb-stone-700: #4d463e;
+            --evb-ink-900: #171614;
+            --evb-border: rgba(23, 22, 20, 0.14);
+            --row-ok: #e8f5ec;
+            --row-warn: #fff6d9;
+            --row-error: #fde7df;
+            --row-info: #e7f1f4;
+            --radius: 8px;
+            --shadow: 0 10px 28px rgba(12, 31, 27, 0.14);
+        }
+
+        * { box-sizing: border-box; }
+
+        html {
+            min-width: 320px;
+        }
+
+        body {
+            background: linear-gradient(135deg, #edf3ef 0%, #f6f1ea 100%);
+            color: var(--evb-ink-900);
+            display: flex;
+            flex-direction: column;
+            font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+            font-size: 15px;
+            margin: 0;
+            min-height: 100vh;
+        }
+
+        .app-header {
+            background: linear-gradient(135deg, var(--evb-green-950), var(--evb-green-800));
+            border-bottom: 3px solid var(--evb-gold-500);
+            color: var(--evb-cream-100);
+            padding: 1rem 1.35rem;
+        }
+
+        .header-content,
+        .main-container,
+        .footer-content,
+        .footer-bottom {
+            margin: 0 auto;
+            width: min(100% - 1.25rem, 1600px);
+        }
+
+        .header-content {
+            align-items: center;
+            display: flex;
+            gap: 1rem;
+            justify-content: space-between;
+            min-height: 76px;
+        }
+
+        .logo {
+            align-items: center;
+            display: flex;
+            gap: 0.85rem;
+            min-width: 0;
+        }
+
+        .logo i {
+            align-items: center;
+            background: rgba(243, 178, 51, 0.16);
+            border: 1px solid rgba(243, 178, 51, 0.42);
+            border-radius: var(--radius);
+            color: var(--evb-gold-500);
+            display: inline-flex;
+            flex: 0 0 44px;
+            font-size: 1.3rem;
+            height: 44px;
+            justify-content: center;
+            width: 44px;
+        }
+
+        h1 {
+            font-size: clamp(1.4rem, 2.6vw, 2rem);
+            line-height: 1.08;
+            margin: 0;
+        }
+
+        h1 span {
+            color: var(--evb-gold-500);
+        }
+
+        .subtitle {
+            color: var(--evb-cream-200);
+            font-size: 0.92rem;
+            font-weight: 650;
+            line-height: 1.35;
+            margin: 0;
+            max-width: 560px;
+            text-align: right;
+        }
+
+        .main-container {
+            flex: 1;
+            padding: 1.25rem 0 2rem;
+        }
+
+        .workflow {
+            background: rgba(255,255,255,0.86);
+            border: 1px solid var(--evb-border);
+            border-radius: var(--radius);
+            box-shadow: 0 1px 2px rgba(12, 31, 27, 0.08);
+            display: grid;
+            gap: 0.55rem;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            margin-bottom: 1rem;
+            padding: 0.65rem;
+        }
+
+        .workflow-step {
+            align-items: center;
+            background: #fffaf2;
+            border: 1px solid rgba(12, 31, 27, 0.1);
+            border-radius: var(--radius);
+            display: grid;
+            gap: 0.45rem;
+            grid-template-columns: auto 1fr;
+            padding: 0.55rem 0.6rem;
+        }
+
+        .workflow-step b {
+            align-items: center;
+            background: var(--evb-green-900);
+            border-radius: 999px;
+            color: var(--evb-gold-500);
+            display: inline-flex;
+            font-size: 0.8rem;
+            height: 28px;
+            justify-content: center;
+            width: 28px;
+        }
+
+        .workflow-step strong {
+            color: var(--evb-green-950);
+            display: block;
+            font-size: 0.84rem;
+        }
+
+        .workflow-step span {
+            color: var(--evb-stone-700);
+            display: block;
+            font-size: 0.73rem;
+            font-weight: 650;
+            line-height: 1.25;
+        }
+
+        .workspace {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: minmax(360px, 0.34fr) minmax(620px, 0.66fr);
+        }
+
+        .panel {
+            background: rgba(255,255,255,0.92);
+            border: 1px solid var(--evb-border);
+            border-radius: var(--radius);
+            box-shadow: 0 1px 2px rgba(12, 31, 27, 0.1);
+            overflow: hidden;
+        }
+
+        .panel-header {
+            align-items: center;
+            background: linear-gradient(135deg, var(--evb-green-900), var(--evb-green-800));
+            border-bottom: 2px solid var(--evb-gold-500);
+            color: var(--evb-cream-100);
+            display: flex;
+            gap: 0.6rem;
+            justify-content: space-between;
+            padding: 0.75rem 0.9rem;
+        }
+
+        .panel-header h2,
+        .panel-header h3 {
+            font-size: 0.98rem;
+            margin: 0;
+        }
+
+        .panel-header i {
+            color: var(--evb-gold-500);
+        }
+
+        .panel-body {
+            display: grid;
+            gap: 0.85rem;
+            padding: 0.9rem;
+        }
+
+        .toolbar,
+        .field-grid {
+            align-items: flex-start;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.6rem;
+        }
+
+        .field {
+            display: grid;
+            flex: 1 1 150px;
+            gap: 0.25rem;
+            min-width: 0;
+        }
+
+        label,
+        .helper {
+            color: var(--evb-stone-700);
+            font-size: 0.82rem;
+            font-weight: 700;
+            line-height: 1.4;
+        }
+
+        input,
+        select {
+            border: 1px solid var(--evb-border);
+            border-radius: var(--radius);
+            color: var(--evb-ink-900);
+            font: inherit;
+            min-width: 0;
+            padding: 0.58rem 0.68rem;
+            width: 100%;
+        }
+
+        .btn {
+            align-items: center;
+            background: var(--evb-green-900);
+            border: 0;
+            border-radius: var(--radius);
+            color: var(--evb-cream-100);
+            cursor: pointer;
+            display: inline-flex;
+            font-weight: 850;
+            gap: 0.45rem;
+            justify-content: center;
+            min-height: 38px;
+            padding: 0.6rem 0.8rem;
+        }
+
+        .btn.secondary {
+            background: #efe7dc;
+            color: var(--evb-green-950);
+        }
+
+        .btn.accent {
+            background: var(--evb-gold-500);
+            color: var(--evb-green-950);
+        }
+
+        .btn:disabled {
+            cursor: not-allowed;
+            opacity: 0.5;
+        }
+
+        .status-grid {
+            display: grid;
+            gap: 0.55rem;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+        }
+
+        .status-card {
+            background: #fffaf2;
+            border: 1px solid rgba(11,63,57,0.1);
+            border-radius: var(--radius);
+            display: grid;
+            gap: 0.1rem;
+            padding: 0.65rem 0.7rem;
+        }
+
+        .status-value {
+            color: var(--evb-green-900);
+            font-size: 1.3rem;
+            font-weight: 900;
+        }
+
+        .status-label {
+            color: var(--evb-stone-700);
+            font-size: 0.78rem;
+            font-weight: 750;
+        }
+
+        .legend {
+            display: grid;
+            gap: 0.4rem;
+        }
+
+        .legend-item {
+            align-items: center;
+            color: var(--evb-stone-700);
+            display: flex;
+            font-size: 0.78rem;
+            font-weight: 700;
+            gap: 0.45rem;
+        }
+
+        .swatch {
+            border: 1px solid rgba(12,31,27,0.14);
+            border-radius: 4px;
+            height: 16px;
+            width: 24px;
+        }
+
+        .swatch.green { background: var(--row-ok); }
+        .swatch.yellow { background: var(--row-warn); }
+        .swatch.red { background: var(--row-error); }
+        .swatch.blue { background: var(--row-info); }
+
+        .issues-list {
+            display: grid;
+            gap: 0.55rem;
+            max-height: 360px;
+            overflow: auto;
+        }
+
+        .issue {
+            background: var(--evb-stone-100);
+            border: 1px solid rgba(11,63,57,0.08);
+            border-left: 4px solid var(--evb-green-800);
+            border-radius: var(--radius);
+            display: grid;
+            gap: 0.2rem;
+            padding: 0.55rem 0.65rem;
+        }
+
+        .issue.warn { border-left-color: var(--evb-gold-500); }
+        .issue.error { border-left-color: #c5522a; }
+        .issue.ok { border-left-color: #2d8a55; }
+        .issue.external { border-left-color: #2b7b93; }
+
+        .rule-summary {
+            display: grid;
+            gap: 0.45rem;
+        }
+
+        .rule-row {
+            align-items: center;
+            background: #fffaf2;
+            border: 1px solid rgba(11,63,57,0.1);
+            border-radius: var(--radius);
+            display: grid;
+            gap: 0.4rem;
+            grid-template-columns: auto 1fr auto;
+            padding: 0.5rem 0.55rem;
+        }
+
+        .rule-row b {
+            align-items: center;
+            background: var(--evb-green-900);
+            border-radius: 999px;
+            color: var(--evb-gold-500);
+            display: inline-flex;
+            font-size: 0.72rem;
+            height: 24px;
+            justify-content: center;
+            min-width: 24px;
+            padding: 0 0.35rem;
+        }
+
+        .rule-row span {
+            color: var(--evb-stone-700);
+            font-size: 0.75rem;
+            font-weight: 700;
+            line-height: 1.25;
+        }
+
+        .rule-pill {
+            border-radius: 999px;
+            font-size: 0.68rem;
+            font-weight: 900;
+            padding: 0.18rem 0.42rem;
+            text-transform: uppercase;
+            white-space: nowrap;
+        }
+
+        .rule-pill.local { background: var(--row-ok); color: #1d6d3e; }
+        .rule-pill.external { background: var(--row-info); color: #22576a; }
+        .rule-pill.pending { background: var(--row-warn); color: #7a580c; }
+
+        .issue strong {
+            color: var(--evb-green-950);
+            font-size: 0.82rem;
+        }
+
+        .issue span {
+            color: var(--evb-stone-700);
+            font-size: 0.76rem;
+            font-weight: 650;
+            line-height: 1.35;
+        }
+
+        .table-wrap {
+            border: 1px solid rgba(11,63,57,0.12);
+            border-radius: var(--radius);
+            max-height: 680px;
+            overflow: auto;
+        }
+
+        table {
+            border-collapse: collapse;
+            min-width: 100%;
+            width: max-content;
+        }
+
+        th,
+        td {
+            border-bottom: 1px solid rgba(11,63,57,0.1);
+            font-size: 0.8rem;
+            max-width: 340px;
+            padding: 0.46rem 0.55rem;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #f8f4ee;
+            color: var(--evb-green-900);
+            position: sticky;
+            top: 0;
+            z-index: 1;
+        }
+
+        tr.corrected td { background: var(--row-ok); }
+        tr.warning td { background: var(--row-warn); }
+        tr.error td { background: var(--row-error); }
+        tr.info td { background: var(--row-info); }
+
+        td.changed {
+            box-shadow: inset 0 -2px 0 #2d8a55;
+            font-weight: 750;
+        }
+
+        .toast {
+            background: var(--evb-green-950);
+            border-radius: var(--radius);
+            bottom: 1rem;
+            box-shadow: var(--shadow);
+            color: var(--evb-cream-100);
+            font-weight: 750;
+            left: 50%;
+            max-width: min(92vw, 520px);
+            opacity: 0;
+            padding: 0.8rem 1rem;
+            pointer-events: none;
+            position: fixed;
+            transform: translate(-50%, 12px);
+            transition: opacity 160ms ease, transform 160ms ease;
+            z-index: 999;
+        }
+
+        .toast.visible {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        .app-footer {
+            background: var(--evb-green-950);
+            border-top: 3px solid var(--evb-gold-500);
+            color: var(--evb-cream-100);
+            padding: 1rem 1.35rem;
+        }
+
+        .footer-content {
+            display: grid;
+            gap: 1rem;
+            grid-template-columns: repeat(3, 1fr);
+        }
+
+        .footer-section h3 {
+            color: var(--evb-gold-500);
+            font-size: 0.88rem;
+            margin: 0 0 0.35rem;
+        }
+
+        .footer-section p,
+        .footer-bottom p {
+            color: var(--evb-cream-200);
+            font-size: 0.8rem;
+            line-height: 1.45;
+            margin: 0;
+        }
+
+        .footer-bottom {
+            border-top: 1px solid rgba(255,255,255,0.14);
+            margin-top: 0.8rem;
+            padding-top: 0.7rem;
+        }
+
+        .hidden {
+            display: none !important;
+        }
+
+        @media (max-width: 1180px) {
+            .workspace { grid-template-columns: 1fr; }
+            .workflow { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+            .header-content { align-items: flex-start; flex-direction: column; }
+            .subtitle { text-align: left; }
+        }
+
+        @media (max-width: 700px) {
+            .header-content,
+            .main-container,
+            .footer-content,
+            .footer-bottom {
+                width: min(100% - 0.6rem, 1600px);
+            }
+
+            .workflow,
+            .footer-content {
+                grid-template-columns: 1fr;
+            }
+
+            .status-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header class="app-header">
+        <div class="header-content">
+            <div class="logo">
+                <i class="fas fa-clipboard-check" aria-hidden="true"></i>
+                <div>
+                    <h1>EVB <span>Revisão</span></h1>
+                    <p class="subtitle">Correção curatorial de planilhas botânicas antes da incorporação, análise ou padronização final.</p>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="main-container">
+        <section class="workflow" aria-label="Fluxo da ferramenta">
+            <div class="workflow-step"><b>1</b><div><strong>Carregue a planilha</strong><span>Mantemos as colunas originais.</span></div></div>
+            <div class="workflow-step"><b>2</b><div><strong>Analise alertas</strong><span>Erros, avisos e duplicidade provável.</span></div></div>
+            <div class="workflow-step"><b>3</b><div><strong>Corrija com segurança</strong><span>Aplica apenas ajustes defensáveis.</span></div></div>
+            <div class="workflow-step"><b>4</b><div><strong>Exporte revisada</strong><span>Mesmo formato estrutural, dados limpos.</span></div></div>
+        </section>
+
+        <div class="workspace">
+            <aside class="panel">
+                <div class="panel-header">
+                    <h2><i class="fas fa-file-excel" aria-hidden="true"></i> Planilha</h2>
+                </div>
+                <div class="panel-body">
+                    <section>
+                        <p class="helper">Aceita .xlsx, .xls e .csv. A ferramenta tenta reconhecer campos do modelo JABOT, speciesLink convertido ou planilhas autorais próximas do padrão EVB.</p>
+                        <div class="toolbar">
+                            <button class="btn" id="selectFileBtn" type="button"><i class="fas fa-upload"></i> Carregar planilha</button>
+                            <input id="fileInput" type="file" accept=".xlsx,.xls,.csv" hidden>
+                            <button class="btn secondary" id="clearBtn" type="button"><i class="fas fa-trash"></i> Limpar</button>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3>Correções</h3>
+                        <div class="toolbar">
+                            <button class="btn secondary" id="analyzeBtn" type="button" disabled><i class="fas fa-magnifying-glass"></i> Analisar planilha</button>
+                            <button class="btn accent" id="safeFixBtn" type="button" disabled><i class="fas fa-wand-magic-sparkles"></i> Corrigir seguro</button>
+                            <button class="btn secondary" id="gbifBtn" type="button" disabled><i class="fas fa-seedling"></i> Corrigir nomes GBIF</button>
+                            <button class="btn secondary" id="duplicatesBtn" type="button" disabled><i class="fas fa-clone"></i> Ver duplicidades</button>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3>Duplicidade provável</h3>
+                        <div class="field-grid">
+                            <label class="field">Sensibilidade
+                                <select id="duplicateSensitivity">
+                                    <option value="balanced">Equilibrada</option>
+                                    <option value="strict">Rigorosa</option>
+                                    <option value="sensitive">Sensível</option>
+                                </select>
+                            </label>
+                        </div>
+                        <p class="helper">A ferramenta só alerta. Ela nunca exclui linhas automaticamente.</p>
+                    </section>
+
+                    <section>
+                        <h3>Exportação</h3>
+                        <div class="toolbar">
+                            <button class="btn" id="downloadBtn" type="button" disabled><i class="fas fa-file-excel"></i> Baixar .xlsx</button>
+                            <button class="btn secondary" id="copyBtn" type="button" disabled><i class="fas fa-copy"></i> Copiar tabela</button>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3>Resumo</h3>
+                        <div class="status-grid" id="summaryCards">
+                            <div class="status-card"><div class="status-value">0</div><div class="status-label">Linhas</div></div>
+                            <div class="status-card"><div class="status-value">0</div><div class="status-label">Correções</div></div>
+                            <div class="status-card"><div class="status-value">0</div><div class="status-label">Avisos</div></div>
+                            <div class="status-card"><div class="status-value">0</div><div class="status-label">Duplicidades</div></div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3>Cobertura JABOT</h3>
+                        <div class="rule-summary" id="ruleSummary">
+                            <div class="helper">Carregue uma planilha para ver quais validações podem ser executadas localmente.</div>
+                        </div>
+                    </section>
+
+                    <section>
+                        <h3>Legenda</h3>
+                        <div class="legend">
+                            <div class="legend-item"><span class="swatch green"></span> Corrigido automaticamente</div>
+                            <div class="legend-item"><span class="swatch yellow"></span> Precisa revisão</div>
+                            <div class="legend-item"><span class="swatch red"></span> Erro crítico</div>
+                            <div class="legend-item"><span class="swatch blue"></span> Possível duplicidade</div>
+                        </div>
+                    </section>
+                </div>
+            </aside>
+
+            <section class="panel">
+                <div class="panel-header">
+                    <h2><i class="fas fa-table" aria-hidden="true"></i> Revisão da planilha</h2>
+                </div>
+                <div class="panel-body">
+                    <div class="table-wrap" id="tableWrap">
+                        <div class="helper" style="padding:1rem;">Carregue uma planilha para iniciar a revisão.</div>
+                    </div>
+                </div>
+            </section>
+        </div>
+
+        <section class="panel" style="margin-top:1rem;">
+            <div class="panel-header">
+                <h2><i class="fas fa-triangle-exclamation" aria-hidden="true"></i> Alertas e correções</h2>
+            </div>
+            <div class="panel-body">
+                <div class="issues-list" id="issuesList">
+                    <div class="helper">Os alertas aparecerão aqui depois da análise.</div>
+                </div>
+            </div>
+        </section>
+    </main>
+
+    <footer class="app-footer">
+        <div class="footer-content">
+            <section class="footer-section">
+                <h3>Herbário Evaldo Buttura</h3>
+                <p>Revisão curatorial de planilhas botânicas.</p>
+                <p>Uso interno - EVB / UNILA.</p>
+            </section>
+            <section class="footer-section">
+                <h3>EVB Revisão</h3>
+                <p>Correções seguras, alertas e duplicidade provável.</p>
+                <p>Versão 1.0 - Junho de 2026.</p>
+            </section>
+            <section class="footer-section">
+                <h3>Desenvolvimento</h3>
+                <p>Marlon Royer de Morais</p>
+                <p>Portal EVB - Ferramentas Digitais.</p>
+            </section>
+        </div>
+        <div class="footer-bottom">
+            <p>&copy; 2026 Herbário Evaldo Buttura. Sistema desenvolvido para organização, processamento e revisão de dados botânicos.</p>
+        </div>
+    </footer>
+
+    <div class="toast" id="toast"></div>
+
+    <script>
+        const state = {
+            rows: [],
+            headers: [],
+            fileName: "evb-revisao.xlsx",
+            issues: [],
+            rowStatus: new Map(),
+            changedCells: new Map(),
+            corrections: 0,
+            warnings: 0,
+            errors: 0,
+            external: 0,
+            duplicates: 0,
+            ruleHits: new Map(),
+            toastTimer: null
+        };
+
+        const els = {
+            fileInput: document.getElementById("fileInput"),
+            selectFileBtn: document.getElementById("selectFileBtn"),
+            clearBtn: document.getElementById("clearBtn"),
+            analyzeBtn: document.getElementById("analyzeBtn"),
+            safeFixBtn: document.getElementById("safeFixBtn"),
+            gbifBtn: document.getElementById("gbifBtn"),
+            duplicatesBtn: document.getElementById("duplicatesBtn"),
+            duplicateSensitivity: document.getElementById("duplicateSensitivity"),
+            downloadBtn: document.getElementById("downloadBtn"),
+            copyBtn: document.getElementById("copyBtn"),
+            tableWrap: document.getElementById("tableWrap"),
+            issuesList: document.getElementById("issuesList"),
+            summaryCards: document.getElementById("summaryCards"),
+            ruleSummary: document.getElementById("ruleSummary"),
+            toast: document.getElementById("toast")
+        };
+
+        const FIELD_HINTS = {
+            scientificName: ["scientificname", "nomecientifico", "especie", "speciesname", "taxon"],
+            family: ["family", "familia"],
+            genus: ["genus", "genero"],
+            epithet: ["sp1", "species", "specificepithet", "epiteto", "speciesepithet"],
+            author: ["author1", "scientificnameauthorship", "author", "scientificnameauthor"],
+            collector: ["collector", "recordedby", "coletor", "collectedby"],
+            additionalCollectors: ["addcoll", "additionalcollectors", "recordedby2", "coletoresadicionais"],
+            recordNumber: ["number", "collectornumber", "recordnumber", "numerocoleta"],
+            identifier: ["identifiedby", "detby", "determinador"],
+            additionalIdentifiers: ["adddet", "additionalidentifiedby", "detby2"],
+            collectionYear: ["collyy", "year", "yearcollected"],
+            collectionMonth: ["collmm", "month", "monthcollected"],
+            collectionDay: ["colldd", "day", "daycollected"],
+            determinationYear: ["detyy", "yearidentified"],
+            determinationMonth: ["detmm", "monthidentified"],
+            determinationDay: ["detdd", "dayidentified"],
+            country: ["country", "pais"],
+            state: ["majorarea", "stateprovince", "estado", "state"],
+            municipality: ["minorarea", "county", "municipio", "municipality", "city"],
+            locality: ["gazetteer", "locality", "localidade"],
+            notes: ["notes", "remarks", "occurrenceremarks", "observacoes", "observation"],
+            habitat: ["habitat"],
+            habit: ["habito", "habit", "lifeform", "lifeform"],
+            project: ["project", "projeto"],
+            originHerbarium: ["sigla_colbot_origem", "herbariodeorigem", "originherbarium", "institutioncode"],
+            latitudeDegree: ["lat_grau", "latdegree", "latitudedegrees"],
+            latitudeMinute: ["lat_min", "latminute", "latitudeminutes"],
+            latitudeSecond: ["lat_seg", "latsecond", "latitudesegundos", "latitudeseconds"],
+            ns: ["ns", "n_s", "lat_ns", "hemisferiolatitude"],
+            longitudeDegree: ["long_grau", "longdegree", "longitudedegrees", "lon_grau"],
+            longitudeMinute: ["long_min", "longminute", "longitudeminutes", "lon_min"],
+            longitudeSecond: ["long_seg", "longsecond", "longitudesegundos", "longitudeseconds", "lon_seg"],
+            ew: ["ew", "e_w", "long_ew", "hemisferiolongitude"],
+            latitudeDecimal: ["latitude", "decimallatitude"],
+            longitudeDecimal: ["longitude", "decimallongitude"],
+            nrdumps: ["nrdups", "nrdumps", "duplicatas"],
+            accessionNumber: ["tombo", "catalognumber", "barcode", "numtombo"],
+            rankType: ["rank1", "rank", "taxonrank"],
+            height: ["altura", "height", "height_m"],
+            heightUnit: ["unidmedaltura", "heightunit"],
+            altprof: ["altprof", "altitude", "elevation"],
+            altprofmax: ["altprofmax", "elevationmax"],
+            altitudeUnit: ["unidmedaltprof", "elevationunit"],
+            flower: ["flor", "flower"],
+            fruit: ["fruto", "fruit"]
+        };
+
+        const VALIDATION_RULES = [
+            { id: "1", scope: "structure", mode: "local", label: "Formato padrão da planilha" },
+            { id: "2", scope: "taxon", mode: "local", label: "Completude dos campos do táxon" },
+            { id: "3-11", scope: "taxon", mode: "external", label: "Família, gênero, espécie e autor em bases taxonômicas" },
+            { id: "12-17", scope: "geography", mode: "local", label: "País, estado e município obrigatórios" },
+            { id: "18-29", scope: "coordinates", mode: "local", label: "Coordenadas GMS, hemisfério e intervalos válidos" },
+            { id: "30", scope: "curatorial", mode: "local", label: "NRDUPS numérico" },
+            { id: "31-54", scope: "dates", mode: "local", label: "Datas de coleta e determinação" },
+            { id: "55-59", scope: "collector", mode: "local", label: "Coletor, número de coleta e duplicidade interna" },
+            { id: "60", scope: "taxon", mode: "local", label: "Tipo de rank válido" },
+            { id: "61-68", scope: "measurements", mode: "local", label: "Unidades e medidas" },
+            { id: "69-70", scope: "phenology", mode: "local", label: "Campos flor e fruto" },
+            { id: "72", scope: "text", mode: "local", label: "Espaços no início/fim dos campos" },
+            { id: "73", scope: "taxon", mode: "external", label: "Sugestão de família pela Flora do Brasil" },
+            { id: "74-77", scope: "curatorial", mode: "local", label: "Tombo inteiro e duplicado na planilha" },
+            { id: "78-82", scope: "taxon", mode: "external", label: "Autor, família, gênero e espécie em JABOT/Catalogue of Life" }
+        ];
+
+        const REQUIRED_FIELD_GROUPS = [
+            ["family", "Família"],
+            ["genus", "Gênero"],
+            ["epithet", "Espécie/epíteto"],
+            ["author", "Autor"],
+            ["country", "País"],
+            ["state", "Estado"],
+            ["municipality", "Município"],
+            ["collector", "Coletor"],
+            ["recordNumber", "Número de coleta"],
+            ["collectionYear", "Ano da coleta"],
+            ["collectionMonth", "Mês da coleta"],
+            ["collectionDay", "Dia da coleta"]
+        ];
+
+        document.addEventListener("DOMContentLoaded", () => {
+            els.selectFileBtn.addEventListener("click", () => els.fileInput.click());
+            els.fileInput.addEventListener("change", handleFile);
+            els.clearBtn.addEventListener("click", resetTool);
+            els.analyzeBtn.addEventListener("click", analyzeSheet);
+            els.safeFixBtn.addEventListener("click", applySafeFixes);
+            els.gbifBtn.addEventListener("click", correctScientificNamesWithGbif);
+            els.duplicatesBtn.addEventListener("click", detectDuplicates);
+            els.downloadBtn.addEventListener("click", downloadXlsx);
+            els.copyBtn.addEventListener("click", copyTable);
+            els.duplicateSensitivity.addEventListener("change", () => state.rows.length && detectDuplicates());
+        });
+
+        async function handleFile(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            try {
+                const rows = await readRows(file);
+                state.rows = rows;
+                state.headers = collectHeaders(rows);
+                state.fileName = buildOutputName(file.name);
+                clearReviewState();
+                toggleActions(Boolean(rows.length));
+                renderTable();
+                updateSummary();
+                toast(`${rows.length} linha(s) carregada(s).`);
+            } catch (error) {
+                console.error(error);
+                toast(`Não foi possível carregar a planilha: ${error.message}`);
+            }
+        }
+
+        async function readRows(file) {
+            const lower = file.name.toLowerCase();
+            if (lower.endsWith(".csv")) {
+                const text = await readTextFile(file);
+                const workbook = XLSX.read(text, { type: "string", raw: true, codepage: 65001 });
+                return sheetToRows(workbook.Sheets[workbook.SheetNames[0]]);
+            }
+            const buffer = await file.arrayBuffer();
+            const workbook = XLSX.read(buffer, { type: "array", raw: true, cellDates: false });
+            return sheetToRows(workbook.Sheets[workbook.SheetNames[0]]);
+        }
+
+        async function readTextFile(file) {
+            const buffer = await file.arrayBuffer();
+            try {
+                return new TextDecoder("utf-8", { fatal: true }).decode(buffer);
+            } catch {
+                return new TextDecoder("windows-1252").decode(buffer);
+            }
+        }
+
+        function sheetToRows(sheet) {
+            return XLSX.utils.sheet_to_json(sheet, { defval: "", raw: true }).map(row => {
+                const normalized = {};
+                Object.entries(row).forEach(([key, value]) => normalized[normalizeHeader(key)] = value);
+                Object.defineProperty(normalized, "__original", { value: { ...row }, enumerable: false });
+                Object.defineProperty(normalized, "__headers", { value: Object.keys(row), enumerable: false });
+                return normalized;
+            });
+        }
+
+        function collectHeaders(rows) {
+            return Array.from(new Set(rows.flatMap(row => row.__headers || Object.keys(row).filter(key => !key.startsWith("__")))));
+        }
+
+        function analyzeSheet() {
+            state.issues = [];
+            state.warnings = 0;
+            state.errors = 0;
+            state.duplicates = 0;
+            state.external = 0;
+            state.ruleHits = new Map();
+            state.rowStatus = new Map();
+            state.changedCells = new Map(state.changedCells);
+            analyzeStructure();
+            state.rows.forEach((row, index) => analyzeRow(row, index));
+            detectDuplicates({ silent: true });
+            renderIssues();
+            renderTable();
+            updateSummary();
+            toast("Análise concluída.");
+        }
+
+        function analyzeRow(row, index) {
+            validateTaxon(row, index);
+            validateGeography(row, index);
+            validateCoordinates(row, index);
+            validateNumbers(row, index);
+            checkDates(row, index);
+            validateCollector(row, index);
+            validateRank(row, index);
+            validateMeasurements(row, index);
+            validatePhenology(row, index);
+            validateTextCleanup(row, index);
+            validateCuratorialContext(row, index);
+        }
+
+        function analyzeStructure() {
+            const missing = REQUIRED_FIELD_GROUPS
+                .filter(([group]) => !state.rows.some(row => findExistingKey(row, FIELD_HINTS[group])))
+                .map(([, label]) => label);
+            if (missing.length) {
+                addIssue(0, "warn", "Regra 1 - estrutura parcial", `Campos esperados não encontrados: ${missing.join(", ")}. A validação continua, mas alguns testes ficam limitados.`, "1", "estrutura");
+            } else {
+                hitRule("1");
+            }
+            VALIDATION_RULES.filter(rule => rule.mode === "external").forEach(rule => {
+                addIssue(0, "external", `Regra ${rule.id} - requer base externa`, `${rule.label}. Esta regra depende de Reflora, JABOT, Catalogue of Life ou base equivalente carregada/consultada.`, rule.id, rule.scope);
+            });
+        }
+
+        function validateTaxon(row, index) {
+            const scientific = getField(row, FIELD_HINTS.scientificName);
+            const family = getField(row, FIELD_HINTS.family);
+            const genus = getField(row, FIELD_HINTS.genus);
+            const epithet = getField(row, FIELD_HINTS.epithet);
+            const author = getField(row, FIELD_HINTS.author);
+            const hasScientific = Boolean(clean(scientific.value));
+            const hasAnyTaxon = [family, genus, epithet, author].some(field => clean(field.value));
+            if (!hasScientific && !hasAnyTaxon) {
+                addIssue(index, "error", "Regra 2 - táxon ausente", "Nenhum campo taxonômico reconhecido na linha.", "2", "taxon");
+                return;
+            }
+            if (!clean(family.value)) addIssue(index, "error", "Regra 2.2 - família ausente", "A família é necessária para validar o gênero no padrão JABOT.", "2.2", family.key || "family");
+            if (!clean(genus.value) && clean(epithet.value)) addIssue(index, "error", "Regra 2.3 - gênero ausente", "Há epíteto específico, mas o gênero está vazio.", "2.3", genus.key || "genus");
+            if (clean(genus.value) && !clean(epithet.value) && !hasScientific) addIssue(index, "warn", "Regra 2.4 - espécie ausente", "Há gênero informado, mas o epíteto específico não foi reconhecido.", "2.4", epithet.key || "sp1");
+            if ((hasScientific || clean(epithet.value)) && !clean(author.value)) addIssue(index, "warn", "Regra 2.5 - autor ausente", "O autor do nome científico não foi reconhecido.", "2.5", author.key || "author1");
+            hitRule("2");
+        }
+
+        function validateGeography(row, index) {
+            const country = getField(row, FIELD_HINTS.country);
+            const stateField = getField(row, FIELD_HINTS.state);
+            const municipality = getField(row, FIELD_HINTS.municipality);
+            if (!clean(country.value)) addIssue(index, "error", "Regra 12 - país ausente", "O campo país é obrigatório no fluxo JABOT.", "12", country.key || "country");
+            if (!clean(stateField.value)) addIssue(index, "error", "Regra 14 - estado ausente", "O campo estado/majorarea é obrigatório.", "14", stateField.key || "majorarea");
+            if (!clean(municipality.value)) addIssue(index, "error", "Regra 16 - município ausente", "O campo cidade/município/minorarea é obrigatório.", "16", municipality.key || "minorarea");
+            hitRule("12-17");
+        }
+
+        function validateCoordinates(row, index) {
+            const latDegree = getField(row, FIELD_HINTS.latitudeDegree);
+            const latMinute = getField(row, FIELD_HINTS.latitudeMinute);
+            const latSecond = getField(row, FIELD_HINTS.latitudeSecond);
+            const ns = getField(row, FIELD_HINTS.ns);
+            const lonDegree = getField(row, FIELD_HINTS.longitudeDegree);
+            const lonMinute = getField(row, FIELD_HINTS.longitudeMinute);
+            const lonSecond = getField(row, FIELD_HINTS.longitudeSecond);
+            const ew = getField(row, FIELD_HINTS.ew);
+            const gmsFields = [latDegree, latMinute, latSecond, ns, lonDegree, lonMinute, lonSecond, ew];
+            if (!gmsFields.some(field => clean(field.value))) return;
+            checkRange(index, latMinute, 0, 59, "20", "lat_min deve estar entre 0 e 59.");
+            checkRange(index, latDegree, 0, 90, "21", "lat_grau deve estar entre 0 e 90.");
+            checkRange(index, lonMinute, 0, 59, "28", "long_min deve estar entre 0 e 59.");
+            checkRange(index, lonDegree, 0, 180, "29", "long_grau deve estar entre 0 e 180.");
+            if (clean(latSecond.value) && !isNumericLike(latSecond.value)) addIssue(index, "error", "Regra 18 - segundo de latitude inválido", "lat_seg deve ser numérico.", "18", latSecond.key || "lat_seg");
+            if (clean(lonSecond.value) && !isNumericLike(lonSecond.value)) addIssue(index, "error", "Regra 22 - segundo de longitude inválido", "long_seg deve ser numérico.", "22", lonSecond.key || "long_seg");
+            if (clean(ns.value) && !/^[NS]$/i.test(clean(ns.value))) addIssue(index, "error", "Regra 25 - N.S. inválido", "Use apenas N ou S para o hemisfério da latitude.", "25", ns.key || "ns");
+            if (clean(ew.value) && !/^[EWLO]$/i.test(clean(ew.value))) addIssue(index, "error", "Regra 26 - E.W. inválido", "Use E/W ou L/O conforme o padrão adotado para longitude.", "26", ew.key || "ew");
+            hitRule("18-29");
+        }
+
+        function validateNumbers(row, index) {
+            const nrdumps = getField(row, FIELD_HINTS.nrdumps);
+            const accession = getField(row, FIELD_HINTS.accessionNumber);
+            if (clean(nrdumps.value) && !isIntegerLike(nrdumps.value)) addIssue(index, "error", "Regra 30 - NRDUPS inválido", "NRDUPS deve ser numérico.", "30", nrdumps.key);
+            if (clean(accession.value) && !isIntegerLike(stripAccessionPrefix(accession.value))) addIssue(index, "warn", "Regra 74 - tombo não inteiro", "O número de tombo deve ser interpretável como inteiro.", "74", accession.key);
+            if (clean(accession.value) && countSameAccession(accession.value) > 1) addIssue(index, "error", "Regra 76 - tombo duplicado", "Este número de tombo aparece mais de uma vez na própria planilha.", "76", accession.key);
+            hitRule("30");
+            hitRule("74-77");
+        }
+
+        function validateCollector(row, index) {
+            const collector = getField(row, FIELD_HINTS.collector);
+            const additional = getField(row, FIELD_HINTS.additionalCollectors);
+            const number = getField(row, FIELD_HINTS.recordNumber);
+            if (!clean(collector.value)) addIssue(index, "error", "Regra 55 - coletor ausente", "O coletor principal é obrigatório.", "55", collector.key || "collector");
+            if (!clean(number.value)) addIssue(index, "error", "Regra 56 - número de coleta ausente", "O número de coleta é obrigatório.", "56", number.key || "number");
+            if (clean(collector.value) && clean(additional.value) && normalizeText(additional.value).includes(normalizeText(collector.value))) {
+                addIssue(index, "warn", "Regra 59 - coletor repetido", "O coletor principal parece aparecer também como coletor adicional.", "59", additional.key);
+            }
+            if (clean(collector.value) && clean(number.value) && countSameCollectorNumber(collector.value, number.value) > 1) {
+                addIssue(index, "error", "Regra 58 - coleta duplicada", "O mesmo coletor e número de coleta aparecem mais de uma vez na planilha.", "58", number.key);
+            }
+            if (hasTextIssue(collector.value)) addIssue(index, "warn", "Regra 72 - coletor pode ser limpo", `Valor atual: ${collector.value}`, "72", collector.key);
+            hitRule("55-59");
+        }
+
+        function validateRank(row, index) {
+            const rank = getField(row, FIELD_HINTS.rankType);
+            if (!clean(rank.value)) return;
+            const normalized = normalizeText(rank.value);
+            if (!["var", "f", "ssp", "subsp", "infr"].includes(normalized)) {
+                addIssue(index, "warn", "Regra 60 - rank incomum", "Valores esperados: var., f., ssp./subsp. ou Infr.", "60", rank.key);
+            }
+            hitRule("60");
+        }
+
+        function validateMeasurements(row, index) {
+            const height = getField(row, FIELD_HINTS.height);
+            const heightUnit = getField(row, FIELD_HINTS.heightUnit);
+            const altprof = getField(row, FIELD_HINTS.altprof);
+            const altprofmax = getField(row, FIELD_HINTS.altprofmax);
+            const altitudeUnit = getField(row, FIELD_HINTS.altitudeUnit);
+            if (clean(height.value) && !isNumericLike(height.value)) addIssue(index, "warn", "Regra 68 - altura não numérica", "O campo altura deveria ser numérico.", "68", height.key);
+            if (clean(heightUnit.value) && !isKnownUnit(heightUnit.value)) addIssue(index, "warn", "Regra 61 - unidade de altura incomum", "Unidade esperada, por exemplo: m., cm ou mm.", "61", heightUnit.key);
+            if ((clean(altprof.value) || clean(altprofmax.value)) && clean(altprof.value) && !isNumericLike(altprof.value)) addIssue(index, "warn", "Regra 65 - altprof não numérico", "O campo altprof deveria ser numérico.", "65", altprof.key);
+            if (clean(altprofmax.value) && !isNumericLike(altprofmax.value)) addIssue(index, "warn", "Regra 66 - altprofmax não numérico", "O campo altprofmax deveria ser numérico.", "66", altprofmax.key);
+            if ((clean(altprof.value) || clean(altprofmax.value)) && clean(altitudeUnit.value) && !isKnownUnit(altitudeUnit.value)) addIssue(index, "warn", "Regra 62 - unidade de altitude/profundidade incomum", "Unidade esperada, por exemplo: m., cm ou mm.", "62", altitudeUnit.key);
+            hitRule("61-68");
+        }
+
+        function validatePhenology(row, index) {
+            const flower = getField(row, FIELD_HINTS.flower);
+            const fruit = getField(row, FIELD_HINTS.fruit);
+            if (clean(flower.value) && !isMarkedBoolean(flower.value)) addIssue(index, "warn", "Regra 69 - campo flor incomum", "O JABOT espera marcação simples, como x, sim ou 1.", "69", flower.key);
+            if (clean(fruit.value) && !isMarkedBoolean(fruit.value)) addIssue(index, "warn", "Regra 70 - campo fruto incomum", "O JABOT espera marcação simples, como x, sim ou 1.", "70", fruit.key);
+            hitRule("69-70");
+        }
+
+        function validateTextCleanup(row, index) {
+            Object.entries(row).forEach(([key, value]) => {
+                if (key.startsWith("__")) return;
+                if (String(value ?? "") !== clean(value)) addIssue(index, "warn", "Regra 72 - espaços extras", `O campo ${key} tem espaços no início ou no fim.`, "72", key);
+            });
+            hitRule("72");
+        }
+
+        function validateCuratorialContext(row, index) {
+            const identifier = getField(row, FIELD_HINTS.identifier);
+            const habit = getField(row, FIELD_HINTS.habit);
+            const notes = getField(row, FIELD_HINTS.notes);
+            const project = getField(row, FIELD_HINTS.project);
+            const originHerbarium = getField(row, FIELD_HINTS.originHerbarium);
+            if (hasTextIssue(identifier.value)) addIssue(index, "warn", "Determinador pode ser padronizado", `Valor atual: ${identifier.value}`, "72", identifier.key);
+            if (!clean(habit.value) && inferHabit(notes.value)) addIssue(index, "warn", "Hábito pode ser inferido", `Notas sugerem: ${inferHabit(notes.value)}.`, "extra", habit.key || "habito");
+            if (clean(project.value) && hasTextIssue(project.value)) addIssue(index, "warn", "Projeto pode ser limpo", `Valor atual: ${project.value}`, "72", project.key);
+            if (isDonationProject(project.value) && !clean(originHerbarium.value)) addIssue(index, "warn", "Herbário de origem ausente", "Projeto indica doação, mas o herbário de origem não foi reconhecido.", "extra", originHerbarium.key || "sigla_colbot_origem");
+        }
+
+        function checkDates(row, index) {
+            const collectionDate = buildDate(
+                getField(row, FIELD_HINTS.collectionYear).value,
+                getField(row, FIELD_HINTS.collectionMonth).value,
+                getField(row, FIELD_HINTS.collectionDay).value
+            );
+            const determinationDate = buildDate(
+                getField(row, FIELD_HINTS.determinationYear).value,
+                getField(row, FIELD_HINTS.determinationMonth).value,
+                getField(row, FIELD_HINTS.determinationDay).value
+            );
+            if (collectionDate?.missing) addIssue(index, "error", "Regra 40 - data de coleta ausente", "A data de coleta é obrigatória.", "40", "colldd/collmm/collyy");
+            if (collectionDate?.invalid) addIssue(index, "error", "Regra 41-50 - data de coleta inválida", collectionDate.message, "41-50", "colldd/collmm/collyy");
+            if (determinationDate?.invalid) addIssue(index, "warn", "Regra 31-39 - data de determinação inválida", determinationDate.message, "31-39", "detdd/detmm/detyy");
+            if (determinationDate?.hasPartial && collectionDate?.missing) addIssue(index, "error", "Regra 52-53 - determinação sem coleta", "Há data de determinação, mas a data de coleta não foi informada.", "52-53", "detdd/detmm/detyy");
+            if (collectionDate?.date && determinationDate?.date && determinationDate.date < collectionDate.date) {
+                addIssue(index, "error", "Regra 51 - determinação anterior à coleta", "A data de determinação aparece antes da data de coleta.", "51", "detdd/detmm/detyy");
+            }
+            hitRule("31-54");
+        }
+
+        function applySafeFixes() {
+            if (!state.rows.length) return;
+            let count = 0;
+            state.rows.forEach((row, index) => {
+                count += normalizeTextFields(row, index);
+                count += normalizePeopleFields(row, index);
+                count += normalizeLocationFields(row, index);
+                count += inferHabitField(row, index);
+            });
+            state.corrections += count;
+            analyzeSheet();
+            updateSummary();
+            toast(`${count} correção(ões) segura(s) aplicada(s).`);
+        }
+
+        function normalizeTextFields(row, index) {
+            let count = 0;
+            [
+                ...FIELD_HINTS.notes,
+                ...FIELD_HINTS.habitat,
+                ...FIELD_HINTS.project
+            ].forEach(key => {
+                if (!(key in row)) return;
+                const original = row[key];
+                const next = normalizeSentence(original);
+                if (clean(original) !== next) {
+                    row[key] = next;
+                    markChanged(index, key, "Texto limpo/padronizado.");
+                    count += 1;
+                }
+            });
+            return count;
+        }
+
+        function normalizePeopleFields(row, index) {
+            let count = 0;
+            [
+                ...FIELD_HINTS.collector,
+                ...FIELD_HINTS.additionalCollectors,
+                ...FIELD_HINTS.identifier,
+                ...FIELD_HINTS.additionalIdentifiers
+            ].forEach(key => {
+                if (!(key in row)) return;
+                const original = row[key];
+                const next = formatPeople(original);
+                if (clean(original) !== next) {
+                    row[key] = next;
+                    markChanged(index, key, "Nome de pessoa padronizado.");
+                    count += 1;
+                }
+            });
+            return count;
+        }
+
+        function normalizeLocationFields(row, index) {
+            let count = 0;
+            [
+                ...FIELD_HINTS.family,
+                ...FIELD_HINTS.country,
+                ...FIELD_HINTS.state,
+                ...FIELD_HINTS.municipality
+            ].forEach(key => {
+                if (!(key in row)) return;
+                const original = row[key];
+                const next = titleCase(original);
+                if (clean(original) !== next) {
+                    row[key] = next;
+                    markChanged(index, key, "Campo geográfico/taxonômico padronizado.");
+                    count += 1;
+                }
+            });
+            return count;
+        }
+
+        function inferHabitField(row, index) {
+            const habitField = findExistingKey(row, FIELD_HINTS.habit);
+            if (!habitField || clean(row[habitField])) return 0;
+            const notes = getField(row, FIELD_HINTS.notes);
+            const habit = inferHabit(notes.value);
+            if (!habit) return 0;
+            row[habitField] = habit;
+            markChanged(index, habitField, `Hábito inferido a partir das notas: ${habit}.`);
+            return 1;
+        }
+
+        async function correctScientificNamesWithGbif() {
+            if (!state.rows.length) return;
+            const names = uniqueScientificNames();
+            if (!names.length) return toast("Nenhum nome científico reconhecido para consulta.");
+
+            els.gbifBtn.disabled = true;
+            els.gbifBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Consultando';
+            let corrected = 0;
+            let reviewed = 0;
+            for (const name of names) {
+                const result = await fetchGbifMatch(name);
+                const summary = applyGbifCorrection(name, result);
+                corrected += summary.corrected;
+                reviewed += summary.review;
+                toast(`GBIF: ${corrected} corrigido(s), ${reviewed} para revisão.`);
+                await sleep(90);
+            }
+            els.gbifBtn.disabled = false;
+            els.gbifBtn.innerHTML = '<i class="fas fa-seedling"></i> Corrigir nomes GBIF';
+            state.corrections += corrected;
+            analyzeSheet();
+            toast(`Consulta GBIF concluída. ${corrected} nome(s) corrigido(s).`);
+        }
+
+        function uniqueScientificNames() {
+            return Array.from(new Set(state.rows.map(row => clean(getScientificName(row))).filter(Boolean)));
+        }
+
+        async function fetchGbifMatch(name) {
+            const url = `https://api.gbif.org/v1/species/match?name=${encodeURIComponent(name)}&kingdom=Plantae&verbose=true`;
+            try {
+                const response = await fetch(url, { headers: { Accept: "application/json" } });
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                return await response.json();
+            } catch (error) {
+                return { match: false, error: error.message };
+            }
+        }
+
+        function applyGbifCorrection(inputName, result) {
+            const correctedName = clean(result?.acceptedScientificName || result?.scientificName);
+            const canonical = clean(result?.canonicalName || result?.species || correctedName);
+            const confidence = Number(result?.confidence || 0);
+            const canCorrect = result?.match && confidence >= 90 && correctedName && namesDiffer(inputName, correctedName);
+            const needsReview = !result?.match || confidence < 90;
+            let corrected = 0;
+            let review = 0;
+
+            state.rows.forEach((row, index) => {
+                if (!sameName(getScientificName(row), inputName)) return;
+                if (canCorrect) {
+                    setScientificName(row, correctedName, canonical);
+                    markChanged(index, primaryTaxonChangeKey(row), `Nome corrigido pelo GBIF: ${inputName} -> ${correctedName}.`);
+                    addIssue(index, "ok", "Nome científico corrigido", `${inputName} -> ${correctedName}. Confiança GBIF: ${confidence}.`);
+                    corrected += 1;
+                } else if (needsReview) {
+                    addIssue(index, "warn", "Nome científico precisa revisão", result?.error ? `Falha GBIF: ${result.error}` : `Match fraco ou ausente para ${inputName}. Confiança: ${confidence}.`);
+                    review += 1;
+                }
+            });
+            return { corrected, review };
+        }
+
+        function detectDuplicates(options = {}) {
+            if (!state.rows.length) return;
+            const threshold = duplicateThreshold();
+            let found = 0;
+            for (let i = 0; i < state.rows.length; i += 1) {
+                for (let j = i + 1; j < state.rows.length; j += 1) {
+                    const score = duplicateScore(state.rows[i], state.rows[j]);
+                    if (score >= threshold.red) {
+                        addIssue(i, "error", "Duplicidade provável", `Linha ${i + 2} muito semelhante à linha ${j + 2}. Similaridade: ${Math.round(score * 100)}%.`, "58", "duplicidade");
+                        addIssue(j, "error", "Duplicidade provável", `Linha ${j + 2} muito semelhante à linha ${i + 2}. Similaridade: ${Math.round(score * 100)}%.`, "58", "duplicidade");
+                        setRowStatus(i, "info");
+                        setRowStatus(j, "info");
+                        found += 1;
+                    } else if (score >= threshold.yellow) {
+                        addIssue(i, "warn", "Possível duplicidade", `Linha ${i + 2} semelhante à linha ${j + 2}. Similaridade: ${Math.round(score * 100)}%.`, "58", "duplicidade");
+                        addIssue(j, "warn", "Possível duplicidade", `Linha ${j + 2} semelhante à linha ${i + 2}. Similaridade: ${Math.round(score * 100)}%.`, "58", "duplicidade");
+                        setRowStatus(i, "info");
+                        setRowStatus(j, "info");
+                        found += 1;
+                    }
+                }
+            }
+            state.duplicates = found;
+            if (found) hitRule("58");
+            if (!options.silent) {
+                renderIssues();
+                renderTable();
+                updateSummary();
+                toast(found ? `${found} par(es) com duplicidade provável.` : "Nenhuma duplicidade provável encontrada.");
+            }
+        }
+
+        function duplicateScore(a, b) {
+            const fields = [
+                [FIELD_HINTS.scientificName, 0.18],
+                [FIELD_HINTS.collector, 0.16],
+                [FIELD_HINTS.recordNumber, 0.18],
+                [FIELD_HINTS.collectionYear, 0.07],
+                [FIELD_HINTS.collectionMonth, 0.05],
+                [FIELD_HINTS.collectionDay, 0.05],
+                [FIELD_HINTS.municipality, 0.08],
+                [FIELD_HINTS.locality, 0.12],
+                [FIELD_HINTS.notes, 0.07],
+                [FIELD_HINTS.habitat, 0.04]
+            ];
+            let totalWeight = 0;
+            let score = 0;
+            fields.forEach(([hints, weight]) => {
+                const first = normalizeText(getField(a, hints).value);
+                const second = normalizeText(getField(b, hints).value);
+                if (!first && !second) return;
+                totalWeight += weight;
+                score += similarity(first, second) * weight;
+            });
+            return totalWeight ? score / totalWeight : 0;
+        }
+
+        function duplicateThreshold() {
+            const value = els.duplicateSensitivity.value;
+            if (value === "strict") return { yellow: 0.86, red: 0.94 };
+            if (value === "sensitive") return { yellow: 0.72, red: 0.88 };
+            return { yellow: 0.78, red: 0.92 };
+        }
+
+        function renderTable() {
+            if (!state.rows.length) {
+                els.tableWrap.innerHTML = '<div class="helper" style="padding:1rem;">Carregue uma planilha para iniciar a revisão.</div>';
+                return;
+            }
+            const maxRows = 500;
+            const rows = state.rows.slice(0, maxRows);
+            els.tableWrap.innerHTML = "<table>" + [
+                "<tr>" + state.headers.map(header => `<th>${escapeHTML(header)}</th>`).join("") + "</tr>",
+                ...rows.map((row, index) => {
+                    const rowClass = state.rowStatus.get(index) || "";
+                    return `<tr class="${rowClass}">` + state.headers.map(header => {
+                        const normalized = normalizeHeader(header);
+                        const changed = state.changedCells.get(index)?.has(normalized);
+                        return `<td class="${changed ? "changed" : ""}">${escapeHTML(clean(row[normalized] ?? ""))}</td>`;
+                    }).join("") + "</tr>";
+                })
+            ].join("") + "</table>";
+        }
+
+        function renderIssues() {
+            if (!state.issues.length) {
+                els.issuesList.innerHTML = '<div class="helper">Nenhum alerta para mostrar.</div>';
+                return;
+            }
+            els.issuesList.innerHTML = state.issues.slice(0, 220).map(issue => `
+                <div class="issue ${issue.level}">
+                    <strong>${issue.rule ? `Regra ${escapeHTML(issue.rule)} · ` : ""}Linha ${issue.row + 2} - ${escapeHTML(issue.title)}</strong>
+                    <span>${escapeHTML(issue.message)}${issue.field ? ` Campo: ${escapeHTML(issue.field)}.` : ""}</span>
+                </div>
+            `).join("");
+        }
+
+        function updateSummary() {
+            state.warnings = state.issues.filter(issue => issue.level === "warn").length;
+            state.errors = state.issues.filter(issue => issue.level === "error").length;
+            state.external = state.issues.filter(issue => issue.level === "external").length;
+            els.summaryCards.innerHTML = [
+                summaryCard(state.rows.length, "Linhas"),
+                summaryCard(state.corrections, "Correções"),
+                summaryCard(state.errors, "Erros"),
+                summaryCard(state.warnings, "Avisos"),
+                summaryCard(state.external, "Bases externas"),
+                summaryCard(state.duplicates, "Duplicidades")
+            ].join("");
+            renderRuleSummary();
+        }
+
+        function summaryCard(value, label) {
+            return `<div class="status-card"><div class="status-value">${escapeHTML(value)}</div><div class="status-label">${escapeHTML(label)}</div></div>`;
+        }
+
+        function addIssue(row, level, title, message, rule = "", field = "") {
+            state.issues.push({ row, level, title, message, rule, field });
+            if (rule) hitRule(rule);
+            if (level === "error") setRowStatus(row, "error");
+            else if (level === "warn") setRowStatus(row, "warning");
+            else if (level === "ok") setRowStatus(row, "corrected");
+        }
+
+        function hitRule(rule) {
+            state.ruleHits.set(rule, (state.ruleHits.get(rule) || 0) + 1);
+        }
+
+        function renderRuleSummary() {
+            if (!els.ruleSummary) return;
+            const localRules = VALIDATION_RULES.filter(rule => rule.mode === "local").length;
+            const externalRules = VALIDATION_RULES.filter(rule => rule.mode === "external").length;
+            const executed = VALIDATION_RULES.filter(rule => state.ruleHits.has(rule.id) || rule.mode === "external");
+            els.ruleSummary.innerHTML = [
+                `<div class="rule-row"><b>${executed.length}</b><span>grupos de validação mapeados (${localRules} locais, ${externalRules} dependentes de base externa)</span><em class="rule-pill local">JABOT</em></div>`,
+                ...VALIDATION_RULES.map(rule => {
+                    const count = state.ruleHits.get(rule.id) || 0;
+                    const modeLabel = rule.mode === "external" ? "base" : (count ? "ativo" : "local");
+                    const pillClass = rule.mode === "external" ? "external" : (count ? "local" : "pending");
+                    return `<div class="rule-row"><b>${escapeHTML(rule.id)}</b><span>${escapeHTML(rule.label)}${count ? ` · ${count} ocorrência(s)` : ""}</span><em class="rule-pill ${pillClass}">${modeLabel}</em></div>`;
+                })
+            ].join("");
+        }
+
+        function setRowStatus(row, status) {
+            const current = state.rowStatus.get(row);
+            const rank = { error: 4, warning: 3, info: 2, corrected: 1, "": 0 };
+            if ((rank[status] || 0) >= (rank[current] || 0)) state.rowStatus.set(row, status);
+        }
+
+        function markChanged(rowIndex, key, message) {
+            const normalized = normalizeHeader(key);
+            if (!state.changedCells.has(rowIndex)) state.changedCells.set(rowIndex, new Set());
+            state.changedCells.get(rowIndex).add(normalized);
+            setRowStatus(rowIndex, "corrected");
+            if (message) addIssue(rowIndex, "ok", "Correção aplicada", message);
+        }
+
+        function getScientificName(row) {
+            const supplied = getField(row, FIELD_HINTS.scientificName).value;
+            if (clean(supplied)) return supplied;
+            return [getField(row, FIELD_HINTS.genus).value, getField(row, FIELD_HINTS.epithet).value, getField(row, FIELD_HINTS.author).value].map(clean).filter(Boolean).join(" ");
+        }
+
+        function setScientificName(row, fullName, canonical) {
+            const scientificKey = findScientificNameKey(row);
+            if (scientificKey) row[scientificKey] = fullName;
+            const parts = splitScientificName(canonical || fullName);
+            const genusKey = findExistingKey(row, FIELD_HINTS.genus);
+            const epithetKey = findExistingKey(row, FIELD_HINTS.epithet);
+            const authorKey = findExistingKey(row, FIELD_HINTS.author);
+            if (genusKey && parts.genus) row[genusKey] = parts.genus;
+            if (epithetKey && parts.specificEpithet) row[epithetKey] = parts.specificEpithet;
+            if (authorKey) row[authorKey] = extractAuthorship(fullName, canonical || parts.canonical);
+        }
+
+        function findScientificNameKey(row) {
+            return findExistingKey(row, FIELD_HINTS.scientificName);
+        }
+
+        function primaryTaxonChangeKey(row) {
+            return findScientificNameKey(row) || findExistingKey(row, FIELD_HINTS.genus) || findExistingKey(row, FIELD_HINTS.epithet) || "";
+        }
+
+        function splitScientificName(value) {
+            const parts = clean(value).split(/\s+/).filter(Boolean);
+            return {
+                genus: parts[0] || "",
+                specificEpithet: parts[1] || "",
+                canonical: [parts[0], parts[1]].filter(Boolean).join(" ")
+            };
+        }
+
+        function extractAuthorship(fullName, canonicalName) {
+            const full = clean(fullName);
+            const canonical = clean(canonicalName);
+            if (!full || !canonical || !full.toLowerCase().startsWith(canonical.toLowerCase())) return "";
+            return clean(full.slice(canonical.length));
+        }
+
+        function getField(row, hints) {
+            const key = findExistingKey(row, hints);
+            return { key, value: key ? row[key] : "" };
+        }
+
+        function findExistingKey(row, hints) {
+            return hints.find(key => Object.prototype.hasOwnProperty.call(row, key)) || "";
+        }
+
+        function buildDate(year, month, day) {
+            const rawYear = clean(year);
+            const rawMonth = normalizeRomanMonth(clean(month));
+            const rawDay = clean(day);
+            const hasPartial = Boolean(rawYear || rawMonth || rawDay);
+            const y = Number(rawYear);
+            const m = Number(rawMonth);
+            const d = Number(rawDay);
+            if (!hasPartial) return { missing: true };
+            if (!y || !m || !d) return { invalid: true, hasPartial, message: "Data incompleta." };
+            if (!/^\d{4}$/.test(rawYear)) return { invalid: true, hasPartial, message: "Ano deve ter quatro dígitos." };
+            if (y > new Date().getFullYear()) return { invalid: true, hasPartial, message: "Ano maior que o ano atual." };
+            if (rawMonth.length > 2 || m < 1 || m > 12) return { invalid: true, hasPartial, message: "Mês inválido." };
+            if (rawDay.length > 2 || d < 1 || d > 31) return { invalid: true, hasPartial, message: "Dia inválido." };
+            const date = new Date(Date.UTC(y, m - 1, d));
+            if (date.getUTCFullYear() !== y || date.getUTCMonth() !== m - 1 || date.getUTCDate() !== d) {
+                return { invalid: true, hasPartial, message: `Data inválida: ${d}/${m}/${y}.` };
+            }
+            return { date, hasPartial };
+        }
+
+        function normalizeRomanMonth(value) {
+            const roman = { i: "1", ii: "2", iii: "3", iv: "4", v: "5", vi: "6", vii: "7", viii: "8", ix: "9", x: "10", xi: "11", xii: "12" };
+            return roman[normalizeText(value)] || value;
+        }
+
+        function checkRange(index, field, min, max, rule, message) {
+            if (!clean(field.value)) return;
+            const value = Number(clean(field.value).replace(",", "."));
+            if (!Number.isFinite(value) || value < min || value > max) addIssue(index, "error", `Regra ${rule} - valor fora do intervalo`, message, rule, field.key);
+        }
+
+        function isIntegerLike(value) {
+            return /^\d+$/.test(clean(value));
+        }
+
+        function isNumericLike(value) {
+            return /^-?\d+(?:[.,]\d+)?$/.test(clean(value));
+        }
+
+        function isKnownUnit(value) {
+            return /^(m|m\.|cm|mm)$/i.test(clean(value));
+        }
+
+        function isMarkedBoolean(value) {
+            return /^(x|sim|s|1|true)$/i.test(clean(value));
+        }
+
+        function stripAccessionPrefix(value) {
+            return clean(value).replace(/^EVB0*/i, "").replace(/^0+/, "") || "0";
+        }
+
+        function countSameAccession(value) {
+            const target = stripAccessionPrefix(value);
+            return state.rows.filter(row => stripAccessionPrefix(getField(row, FIELD_HINTS.accessionNumber).value) === target).length;
+        }
+
+        function countSameCollectorNumber(collector, number) {
+            const targetCollector = normalizeText(collector);
+            const targetNumber = normalizeText(number);
+            return state.rows.filter(row => normalizeText(getField(row, FIELD_HINTS.collector).value) === targetCollector && normalizeText(getField(row, FIELD_HINTS.recordNumber).value) === targetNumber).length;
+        }
+
+        function hasTextIssue(value) {
+            const text = String(value ?? "");
+            return /\s{2,}|;|,\s*,|^\s|\s$/.test(text);
+        }
+
+        function formatPeople(value) {
+            const text = clean(value);
+            if (!text) return "";
+            return text
+                .split(/\s*(?:;|\||\/|\be\b)\s*/i)
+                .map(part => titleCase(part.replace(/\s+/g, " ")))
+                .filter(Boolean)
+                .join(" | ");
+        }
+
+        function normalizeSentence(value) {
+            const text = clean(value).replace(/\s+/g, " ").replace(/\s+([,.;:])/g, "$1").replace(/([,.;:])(?=\S)/g, "$1 ");
+            if (!text) return "";
+            return text.charAt(0).toLocaleUpperCase("pt-BR") + text.slice(1);
+        }
+
+        function inferHabit(value) {
+            const text = normalizeText(value);
+            if (/\barvore\b|\barborea\b|\barvoreta\b/.test(text)) return "Árvore";
+            if (/\barbusto\b|\barbustiva\b/.test(text)) return "Arbusto";
+            if (/\berva\b|\bherbacea\b|\bherbaceo\b/.test(text)) return "Erva";
+            if (/\bliana\b|\btrepadeira\b|\btrepadora\b/.test(text)) return "Liana";
+            if (/\bepifita\b/.test(text)) return "Epífita";
+            if (/\bsubarbusto\b/.test(text)) return "Subarbusto";
+            return "";
+        }
+
+        function isDonationProject(value) {
+            return /doa[cç][aã]o|donation/i.test(clean(value));
+        }
+
+        function downloadXlsx() {
+            if (!state.rows.length) return;
+            const worksheet = XLSX.utils.aoa_to_sheet([state.headers, ...state.rows.map(row => state.headers.map(header => row[normalizeHeader(header)] ?? ""))]);
+            const auditHeader = ["regra", "linha", "gravidade", "campo", "titulo", "mensagem"];
+            const auditRows = state.issues.map(issue => [issue.rule || "", issue.row + 2, issue.level, issue.field || "", issue.title, issue.message]);
+            const auditSheet = XLSX.utils.aoa_to_sheet([auditHeader, ...auditRows]);
+            const workbook = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(workbook, worksheet, "EVB_Revisao");
+            XLSX.utils.book_append_sheet(workbook, auditSheet, "Auditoria");
+            XLSX.writeFile(workbook, state.fileName);
+        }
+
+        function copyTable() {
+            if (!state.rows.length) return;
+            const text = [state.headers, ...state.rows.map(row => state.headers.map(header => row[normalizeHeader(header)] ?? ""))]
+                .map(row => row.map(value => String(value ?? "").replace(/\t/g, " ").replace(/\r?\n/g, " ")).join("\t"))
+                .join("\n");
+            navigator.clipboard?.writeText(text).then(() => toast("Tabela copiada."), () => fallbackCopy(text));
+        }
+
+        function fallbackCopy(text) {
+            const textarea = document.createElement("textarea");
+            textarea.value = text;
+            textarea.style.position = "fixed";
+            textarea.style.left = "-9999px";
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+            toast("Tabela copiada.");
+        }
+
+        function resetTool() {
+            state.rows = [];
+            state.headers = [];
+            state.fileName = "evb-revisao.xlsx";
+            els.fileInput.value = "";
+            clearReviewState();
+            toggleActions(false);
+            renderTable();
+            renderIssues();
+            updateSummary();
+        }
+
+        function clearReviewState() {
+            state.issues = [];
+            state.rowStatus = new Map();
+            state.changedCells = new Map();
+            state.corrections = 0;
+            state.warnings = 0;
+            state.errors = 0;
+            state.duplicates = 0;
+            state.external = 0;
+            state.ruleHits = new Map();
+            els.issuesList.innerHTML = '<div class="helper">Os alertas aparecerão aqui depois da análise.</div>';
+            if (els.ruleSummary) els.ruleSummary.innerHTML = '<div class="helper">Carregue uma planilha para ver quais validações podem ser executadas localmente.</div>';
+        }
+
+        function toggleActions(active) {
+            [els.analyzeBtn, els.safeFixBtn, els.gbifBtn, els.duplicatesBtn, els.downloadBtn, els.copyBtn].forEach(button => button.disabled = !active);
+        }
+
+        function buildOutputName(name) {
+            const stem = name.replace(/\.[^.]+$/, "");
+            return `${stem}_revisado.xlsx`.replace(/[<>:"/\\|?*\x00-\x1F]/g, "_");
+        }
+
+        function similarity(a, b) {
+            if (a === b) return 1;
+            if (!a || !b) return 0;
+            const setA = new Set(a.split(/\s+/).filter(Boolean));
+            const setB = new Set(b.split(/\s+/).filter(Boolean));
+            const intersection = [...setA].filter(item => setB.has(item)).length;
+            const union = new Set([...setA, ...setB]).size || 1;
+            const jaccard = intersection / union;
+            const lev = 1 - levenshtein(a, b) / Math.max(a.length, b.length, 1);
+            return (jaccard * 0.55) + (lev * 0.45);
+        }
+
+        function levenshtein(a, b) {
+            const matrix = Array.from({ length: a.length + 1 }, (_, i) => [i]);
+            for (let j = 1; j <= b.length; j += 1) matrix[0][j] = j;
+            for (let i = 1; i <= a.length; i += 1) {
+                for (let j = 1; j <= b.length; j += 1) {
+                    const cost = a[i - 1] === b[j - 1] ? 0 : 1;
+                    matrix[i][j] = Math.min(matrix[i - 1][j] + 1, matrix[i][j - 1] + 1, matrix[i - 1][j - 1] + cost);
+                }
+            }
+            return matrix[a.length][b.length];
+        }
+
+        function namesDiffer(first, second) {
+            return normalizeText(first) !== normalizeText(second);
+        }
+
+        function sameName(first, second) {
+            return normalizeText(first) === normalizeText(second);
+        }
+
+        function normalizeHeader(value) {
+            return normalizeText(value).replace(/[^a-z0-9]+/g, "");
+        }
+
+        function normalizeText(value) {
+            return clean(value).normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^a-z0-9\s]/g, " ").replace(/\s+/g, " ").trim();
+        }
+
+        function titleCase(value) {
+            const connectors = new Set(["a", "as", "da", "das", "de", "do", "dos", "e"]);
+            let wordIndex = 0;
+            return clean(value).toLocaleLowerCase("pt-BR").replace(/\p{L}[\p{L}\p{M}]*/gu, word => {
+                const result = wordIndex > 0 && connectors.has(word) ? word : word.charAt(0).toLocaleUpperCase("pt-BR") + word.slice(1);
+                wordIndex += 1;
+                return result;
+            });
+        }
+
+        function clean(value) {
+            return repairTextEncoding(String(value ?? "")).trim();
+        }
+
+        function repairTextEncoding(value) {
+            let text = value.normalize("NFC");
+            if (/[ÃƒÃ‚]/.test(text)) {
+                try {
+                    const bytes = Uint8Array.from(text, char => char.charCodeAt(0) & 0xff);
+                    text = new TextDecoder("utf-8").decode(bytes);
+                } catch {}
+            }
+            return text
+                .replace(/\?rvore/g, "Árvore")
+                .replace(/\?rvores/g, "Árvores")
+                .replace(/Herb\?cea/g, "Herbácea")
+                .replace(/herb\?cea/g, "herbácea")
+                .replace(/cori\?cea/g, "coriácea")
+                .replace(/p\?talas/g, "pétalas")
+                .replace(/Infloresc\?ncia/g, "Inflorescência")
+                .replace(/infloresc\?ncia/g, "inflorescência");
+        }
+
+        function escapeHTML(value) {
+            return String(value ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+
+        function sleep(ms) {
+            return new Promise(resolve => setTimeout(resolve, ms));
+        }
+
+        function toast(message) {
+            clearTimeout(state.toastTimer);
+            els.toast.textContent = message;
+            els.toast.classList.add("visible");
+            state.toastTimer = setTimeout(() => els.toast.classList.remove("visible"), 2600);
+        }
+    </script>
+</body>
+</html>

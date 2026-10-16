@@ -1,0 +1,677 @@
+﻿/* ============================================
+   EVB Labels - Design Profissional
+   Baseado no JABOT Extract
+   ============================================ */
+
+:root {
+    /* Cores Frias (Fundo) */
+    --bg-dark: #0B3F39;
+    --bg-medium: #0E4F45;
+    --bg-teal: #16665A;
+    --bg-light-teal: #1C7F6E;
+    --bg-accent: #2E9987;
+    --bg-highlight: #4BB8A3;
+    
+    /* Cores Quentes (Principal) */
+    --primary-gold: #F3B233;
+    --primary-amber: #F0A92A;
+    --primary-orange: #F17A34;
+    --primary-burnt: #E56A2E;
+    --primary-rust: #C5522A;
+    --primary-red: #C43A2E;
+    
+    /* Cores de Sucesso */
+    --success: #F3B233;
+    --success-light: rgba(243, 178, 51, 0.15);
+    --success-dark: #F0A92A;
+    
+    /* Neutros (Header/Footer) */
+    --cream: #E2C3A6;
+    --cream-dark: #CFA98B;
+    --brown: #8E5E45;
+    --brown-dark: #5C3A2B;
+    --charcoal: #2A2A2A;
+    --near-black: #121212;
+    
+    /* Sombras */
+    --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.3);
+    --shadow-md: 0 4px 6px rgba(0, 0, 0, 0.4);
+    --shadow-lg: 0 10px 15px rgba(0, 0, 0, 0.5);
+    --shadow-gold: 0 0 20px rgba(243, 178, 51, 0.3);
+    
+    /* Bordas */
+    --radius-sm: 8px;
+    --radius-md: 12px;
+    --radius-lg: 16px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+    background: linear-gradient(135deg, var(--bg-dark) 0%, var(--bg-teal) 50%, var(--bg-light-teal) 100%);
+    min-height: 100vh;
+    color: var(--cream);
+    line-height: 1.6;
+}
+
+/* ============================================
+   HEADER
+   ============================================ */
+.app-header {
+    background: linear-gradient(135deg, var(--cream) 0%, var(--cream-dark) 100%);
+    box-shadow: var(--shadow-md);
+    padding: 1.5rem 2rem;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    border-bottom: 3px solid var(--primary-gold);
+}
+
+.header-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.logo {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+}
+
+.logo i {
+    font-size: 2.5rem;
+    color: var(--brown-dark);
+}
+
+.logo h1 {
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--near-black);
+}
+
+.logo h1 span {
+    color: var(--primary-rust);
+    font-weight: 300;
+}
+
+.subtitle {
+    color: var(--brown);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+/* ============================================
+   MAIN CONTAINER
+   ============================================ */
+.main-container {
+    max-width: 1200px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+/* ============================================
+   CARDS
+   ============================================ */
+.card {
+    background: rgba(18, 18, 18, 0.8);
+    backdrop-filter: blur(10px);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-md);
+    overflow: hidden;
+    transition: var(--transition);
+    border: 1px solid var(--primary-gold);
+}
+
+.card:hover {
+    box-shadow: var(--shadow-lg), var(--shadow-gold);
+    transform: translateY(-2px);
+    border-color: var(--primary-amber);
+}
+
+.card-header {
+    background: linear-gradient(135deg, var(--near-black) 0%, var(--charcoal) 100%);
+    padding: 1.25rem 1.5rem;
+    border-bottom: 2px solid var(--primary-rust);
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.card-header i {
+    font-size: 1.5rem;
+    color: var(--primary-gold);
+}
+
+.card-header h2 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--cream);
+    flex: 1;
+}
+
+.card-body {
+    padding: 1.5rem;
+    background: rgba(11, 63, 57, 0.3);
+}
+
+.source-actions {
+    align-items: center;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.85rem;
+    margin-bottom: 1rem;
+}
+
+.source-status {
+    background: rgba(18, 18, 18, 0.55);
+    border: 1px solid rgba(243, 178, 51, 0.32);
+    border-radius: var(--radius-sm);
+    color: var(--cream-dark);
+    flex: 1 1 280px;
+    font-size: 0.9rem;
+    line-height: 1.35;
+    padding: 0.75rem 0.9rem;
+}
+
+.source-status[data-status="error"] {
+    border-color: rgba(196, 58, 46, 0.55);
+    color: #ffd7ce;
+}
+
+/* ============================================
+   UPLOAD AREA
+   ============================================ */
+.upload-area {
+    border: 3px dashed var(--primary-rust);
+    border-radius: var(--radius-md);
+    padding: 3rem 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: var(--transition);
+    background: rgba(42, 42, 42, 0.5);
+}
+
+.upload-area:hover {
+    border-color: var(--primary-gold);
+    background: rgba(243, 178, 51, 0.1);
+    transform: scale(1.02);
+    box-shadow: var(--shadow-gold);
+}
+
+.upload-icon {
+    font-size: 4rem;
+    color: var(--primary-gold);
+    margin-bottom: 1rem;
+}
+
+.upload-text {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--cream);
+    margin-bottom: 0.5rem;
+}
+
+.upload-subtext {
+    color: var(--cream-dark);
+    margin-bottom: 1.5rem;
+}
+
+.file-info {
+    margin-top: 1.5rem;
+    font-size: 0.85rem;
+    color: var(--bg-highlight);
+    font-style: italic;
+}
+
+.file-selected {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 1rem;
+    background: rgba(243, 178, 51, 0.15);
+    border-radius: var(--radius-sm);
+    border: 1px solid var(--primary-gold);
+    margin-top: 1rem;
+}
+
+.file-selected i {
+    font-size: 1.5rem;
+    color: var(--primary-gold);
+}
+
+.file-selected span {
+    flex: 1;
+    font-weight: 500;
+    color: var(--cream);
+}
+
+/* ============================================
+   FILTER GRID
+   ============================================ */
+.filter-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+}
+
+.filter-item label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--cream);
+}
+
+.filter-item label i {
+    margin-right: 0.5rem;
+    color: var(--primary-gold);
+}
+
+.filter-item small {
+    display: block;
+    margin-top: 0.25rem;
+    color: var(--cream-dark);
+    font-size: 0.8rem;
+}
+
+/* ============================================
+   BUTTONS
+   ============================================ */
+.btn {
+    padding: 0.75rem 1.5rem;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: var(--transition);
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.9rem;
+    text-decoration: none;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary-orange) 0%, var(--primary-rust) 100%);
+    color: var(--cream);
+    border: 2px solid var(--primary-gold);
+}
+
+.btn-primary:hover {
+    background: linear-gradient(135deg, var(--primary-amber) 0%, var(--primary-orange) 100%);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-gold);
+}
+
+.btn-success {
+    background: linear-gradient(135deg, var(--primary-gold) 0%, var(--primary-orange) 100%);
+    color: var(--near-black);
+    border: 2px solid var(--primary-amber);
+    font-weight: 700;
+}
+
+.btn-success:hover {
+    background: linear-gradient(135deg, var(--primary-amber) 0%, var(--primary-burnt) 100%);
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-gold);
+}
+
+.btn-download {
+    background: linear-gradient(135deg, var(--primary-rust) 0%, var(--primary-red) 100%);
+    color: var(--cream);
+    border: 2px solid var(--primary-gold);
+}
+
+.btn-download:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-gold);
+}
+
+.btn-sm {
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    background: rgba(142, 94, 69, 0.3);
+    color: var(--cream);
+    border: 1px solid var(--brown);
+}
+
+.btn-sm:hover {
+    background: rgba(142, 94, 69, 0.5);
+    border-color: var(--primary-gold);
+}
+
+.btn-lg {
+    padding: 1rem 2rem;
+    font-size: 1.1rem;
+}
+
+.btn-block {
+    width: 100%;
+    justify-content: center;
+}
+
+/* ============================================
+   FORM CONTROLS
+   ============================================ */
+.form-control {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 2px solid var(--brown);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    transition: var(--transition);
+    background: rgba(18, 18, 18, 0.8);
+    color: var(--cream);
+}
+
+.form-control:focus {
+    outline: none;
+    border-color: var(--primary-gold);
+    box-shadow: 0 0 10px rgba(243, 178, 51, 0.3);
+}
+
+.form-control::placeholder {
+    color: var(--cream-dark);
+    opacity: 0.6;
+}
+
+/* ============================================
+   BADGES
+   ============================================ */
+.badge {
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 600;
+}
+
+.badge-info {
+    background: rgba(75, 184, 163, 0.2);
+    color: var(--bg-highlight);
+    border: 1px solid var(--bg-highlight);
+}
+
+/* ============================================
+   RESULT ACTIONS
+   ============================================ */
+.result-actions {
+    display: flex;
+    gap: 0.5rem;
+}
+
+/* ============================================
+   ETIQUETAS CONTAINER
+   ============================================ */
+#etiquetas-container {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 20px;
+    justify-content: center;
+    padding: 1rem;
+    background: rgba(42, 42, 42, 0.3);
+    border-radius: var(--radius-sm);
+    min-height: 200px;
+}
+
+/* ============================================
+   ETIQUETA - MANTIDO O DESIGN ORIGINAL
+   ============================================ */
+.etiqueta-herbario {
+    width: 14cm;
+    height: 10cm;
+    border: 2px solid #333;
+    padding: 0;
+    box-sizing: border-box;
+    font-size: 11px;
+    display: flex;
+    background-color: #ffffff;
+    page-break-inside: avoid;
+    break-inside: avoid;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease;
+}
+
+.etiqueta-herbario:hover {
+    transform: scale(1.02);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+}
+
+/* Coluna da esquerda (Família) */
+.coluna-familia {
+    width: 35%;
+    padding: 8px 0px 8px 8px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    font-weight: bold;
+}
+
+/* Coluna da direita (Intervalos) */
+.coluna-intervalos {
+    width: 65%;
+    padding: 8px 8px 8px 0px;
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+}
+
+/* Estilo do cabeçalho */
+.cabecalho {
+    font-weight: bold;
+    text-align: center;
+    border-bottom: 1px solid #ccc;
+    margin-bottom: 8px;
+    padding-bottom: 4px;
+    flex-shrink: 0;
+}
+
+.id {
+    font-size: 14px;
+    color: #000000;
+}
+
+/* Conteúdo das colunas */
+.conteudo-familia {
+    font-size: 15px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    flex: 1;
+    text-align: right;
+    padding-right: 4px;
+}
+
+.conteudo-intervalos {
+    font-size: 15px;
+    line-height: 1.4;
+    white-space: pre-wrap;
+    overflow-y: auto;
+    flex: 1;
+    font-style: italic;
+    text-align: left;
+    padding-left: 4px;
+}
+
+/* Títulos das colunas - BARRA UNIFICADA */
+.titulo-coluna {
+    font-weight: bold;
+    background-color: #ecf0f1;
+    padding: 4px;
+    text-align: center;
+    margin-bottom: 8px;
+    font-size: 21px;
+    flex-shrink: 0;
+    font-style: normal;
+    margin-left: -8px;
+    margin-right: -4px;
+}
+
+.coluna-familia .titulo-coluna {
+    margin-left: -8px;
+    margin-right: 0;
+}
+
+.coluna-intervalos .titulo-coluna {
+    margin-left: 0;
+    margin-right: -8px;
+}
+
+/* LOGO */
+.logo-canto {
+    width: 3.5cm;
+    height: auto;
+    position: absolute;
+    bottom: 2px;
+    right: 2px;
+    opacity: 0.5;
+}
+
+.etiqueta-herbario.is-label-compact .coluna-familia,
+.etiqueta-herbario.is-label-compact .coluna-intervalos {
+    padding-top: 4px;
+    padding-bottom: 4px;
+}
+
+.etiqueta-herbario.is-label-compact .cabecalho {
+    margin-bottom: 4px;
+    padding-bottom: 2px;
+}
+
+.etiqueta-herbario.is-label-compact .titulo-coluna {
+    margin-bottom: 4px;
+    padding: 2px;
+}
+
+/* ============================================
+   EMPTY STATE
+   ============================================ */
+.empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: var(--cream-dark);
+}
+
+.empty-state i {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+    color: var(--brown);
+}
+
+.empty-state small {
+    display: block;
+    margin-top: 0.5rem;
+    color: var(--bg-highlight);
+}
+
+/* ============================================
+   FOOTER
+   ============================================ */
+.app-footer {
+    background: linear-gradient(135deg, var(--cream) 0%, var(--cream-dark) 100%);
+    padding: 1.5rem 2rem;
+    margin-top: 2rem;
+    border-top: 3px solid var(--primary-gold);
+}
+
+.footer-content {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    color: var(--near-black);
+    font-size: 0.9rem;
+    font-weight: 500;
+}
+
+.footer-links {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* ============================================
+   SCROLLBAR PERSONALIZADA
+   ============================================ */
+::-webkit-scrollbar {
+    width: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: rgba(42, 42, 42, 0.5);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--brown);
+    border-radius: 10px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--primary-rust);
+}
+
+/* ============================================
+   UTILITÁRIOS
+   ============================================ */
+.text-center { text-align: center; }
+.mt-1 { margin-top: 0.5rem; }
+.mt-2 { margin-top: 1rem; }
+.mt-3 { margin-top: 1.5rem; }
+.mb-1 { margin-bottom: 0.5rem; }
+.mb-2 { margin-bottom: 1rem; }
+.mb-3 { margin-bottom: 1.5rem; }
+
+/* ============================================
+   RESPONSIVIDADE
+   ============================================ */
+@media (max-width: 768px) {
+    .header-content {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .filter-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .footer-content {
+        flex-direction: column;
+        gap: 0.5rem;
+        text-align: center;
+    }
+    
+    .result-actions {
+        flex-direction: column;
+    }
+
+    .source-actions {
+        align-items: stretch;
+        flex-direction: column;
+    }
+    
+    #etiquetas-container {
+        padding: 0.5rem;
+    }
+    
+    .etiqueta-herbario {
+        width: 100%;
+        height: auto;
+        aspect-ratio: 14/10;
+    }
+}
