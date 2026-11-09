@@ -474,7 +474,7 @@ async function gerarPDF() {
             );
 
             const canvas = await html2canvas(etiquetas[index], {
-                scale: 6,
+                scale: 5,
                 backgroundColor: '#ffffff'
             });
             const imgData = canvas.toDataURL('image/png', 1.0);
